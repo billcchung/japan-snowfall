@@ -26,14 +26,16 @@ To run it locally instead:
 python3 jma_snowfall.py discover
 python3 jma_snowfall.py fetch
 python3 jma_snowfall.py verify
+python3 jma_snowfall.py daily
 python3 jma_snowfall.py build
 ```
 
 Standard library only. `discover` is one request per prefecture. `fetch` is
 one request per surface station but one request *per year of record* per
-AMeDAS station, so a full run is a few thousand requests and takes a while —
-the script rate limits itself because JMA asks people not to hammer the site.
-Pass resort names to `fetch` to do a subset.
+AMeDAS station. `daily` is one request per station-month, which is ~2,900 on a
+cold start and ~54 afterwards because cached months are skipped. The script
+rate limits itself throughout, because JMA asks people not to hammer the site.
+Pass resort names to either command to do a subset.
 
 ## What's in the repo
 
@@ -41,8 +43,9 @@ Pass resort names to `fetch` to do a subset.
 |---|---|
 | `index.html` | The site. Generated — edit `template.html` instead. |
 | `template.html` | Markup and styling. `/*__DATA__*/null` is where the data lands. |
-| `jma_snowfall.py` | `discover`, `fetch`, `verify`, `build`. Resort-to-station mapping at the top. |
+| `jma_snowfall.py` | `discover`, `fetch`, `verify`, `daily`, `build`. Resort-to-station mapping at the top. |
 | `data/*.csv` | One file per resort, one row per season. Generated. |
+| `data/daily/*.json` | Daily new snow and snow depth, one file per station. Generated, cached. |
 | `reference.json` | Resort elevations and claimed annual snowfall. |
 | `fixtures/niseko_kutchan.csv` | The hand-transcribed Kutchan table. `verify` checks the scrape against it. |
 | `seed_kutchan.py` | Prints that fixture to stdout: `python3 seed_kutchan.py > fixtures/niseko_kutchan.csv`. |
@@ -80,6 +83,15 @@ have no equivalent — their station index offers only `annually_a.php` and the
 request per calendar year. Column position is read from the end of the row,
 because stations that skip wind, temperature or sunshine emit fewer columns;
 the three 雪 columns are always last.
+
+**Daily tables split the same way but behave better.** Surface stations use
+`daily_s1.php?year=&month=`, AMeDAS uses `daily_a1.php`. Unlike the monthly
+tables these are a fixed width per kind — 21 columns and 18 — because an
+element a station does not measure comes back as `///` rather than being
+dropped. Snow is counted from the end: surface rows carry two trailing 天気概況
+cells, so new snow is at `-4` and depth at `-3`, against `-2` and `-1` for
+AMeDAS. Daily sums reconcile exactly with the monthly totals; that is the
+cheapest check that the right column is being read.
 
 **JMA omits a closing `</td>`** on the year cell of the surface monthly table,
 so a naive `<td>…</td>` match merges the year with the January value and every

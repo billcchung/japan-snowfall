@@ -41,6 +41,7 @@ import urllib.request
 BASE = "https://www.data.jma.go.jp/stats/etrn"
 UA = "Mozilla/5.0 (compatible; personal snowfall research; stdlib urllib)"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DAILY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "daily")
 INDEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "station_index.json")
 FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                        "fixtures", "niseko_kutchan.csv")
@@ -346,6 +347,114 @@ def monthly_table(prec_no, block_no, kind):
     return monthly_amedas(prec_no, block_no)
 
 
+# --------------------------------------------------------------------------
+# daily snowfall and snow depth
+# --------------------------------------------------------------------------
+
+# Monthly buckets cannot answer "how much falls between 25 Dec and 5 Jan",
+# so trip planning needs day resolution. Same surface/AMeDAS split as above.
+#
+# Unlike the monthly tables, daily tables are a fixed width per station kind:
+# elements a station does not measure come back as /// rather than being
+# omitted, so 赤井川 (which measures little but snow) has the same 18 columns
+# as 蘭越. Surface rows are 21 -- the extra three being two 天気概況 summary
+# cells at the very end plus a pressure pair at the front. Counting the snow
+# columns from the end is therefore safe for both.
+DAILY_URL = {
+    "s": BASE + "/view/daily_s1.php?prec_no={prec}&block_no={block}"
+                "&year={year}&month={month}&day=&view=",
+    "a": BASE + "/view/daily_a1.php?prec_no={prec}&block_no={block}"
+                "&year={year}&month={month}&day=&view=",
+}
+SNOW_COL = {"s": -4, "a": -2}     # 降雪の深さ 日合計 (cm)
+DEPTH_COL = {"s": -3, "a": -1}    # 最深積雪 (cm)
+
+SEASON_MONTHS = [(0, 11), (0, 12), (1, 1), (1, 2), (1, 3), (1, 4)]
+
+
+def daily_month(prec_no, block_no, kind, year, month):
+    """One calendar month of daily new snow and snow depth, in cm."""
+    url = DAILY_URL[kind].format(prec=prec_no, block=block_no,
+                                 year=year, month=month)
+    html = get(url, tries=2)
+    snow, depth = [], []
+    for row_html in ROW.findall(html):
+        vals = cells(row_html)
+        if len(vals) < 6 or not re.match(r"^\d{1,2}$", vals[0]):
+            continue
+        snow.append(parse_number(vals[SNOW_COL[kind]]))
+        depth.append(parse_number(vals[DEPTH_COL[kind]]))
+    if not snow:
+        raise RuntimeError(f"no daily rows at {url}")
+    return snow, depth
+
+
+def season_years(resort):
+    """The starting calendar year of every season in the resort's CSV."""
+    path = os.path.join(OUT, f"{resort}.csv")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return [int(r["season"].split("/")[0]) for r in csv.DictReader(f)]
+
+
+def daily(names):
+    """Fill data/daily/<prec>-<block>.json, one entry per station-month.
+
+    Cached months are skipped, so the first run is long and later runs only
+    pick up the current season. Keyed by station rather than resort: 旭川
+    serves both Asahidake and Kamui and is fetched once.
+    """
+    index = load_index()
+    os.makedirs(DAILY, exist_ok=True)
+    groups = {}
+    for resort in names:
+        station_ja, prec, _ = RESORTS[resort]
+        groups.setdefault((prec, station_ja), []).append(resort)
+
+    for (prec, station_ja), resorts in groups.items():
+        st = index.get(f"{prec}:{station_ja}")
+        if not st:
+            sys.stderr.write(f"{'/'.join(resorts)}: {station_ja} not in index\n")
+            continue
+        years = season_years(resorts[0])
+        if not years:
+            sys.stderr.write(f"{'/'.join(resorts)}: no monthly CSV yet\n")
+            continue
+        path = os.path.join(DAILY, f"{st['prec_no']}-{st['block_no']}.json")
+        cache = {}
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                cache = json.load(f)
+        latest = max(years)
+        todo = []
+        for y in years:
+            for offset, month in SEASON_MONTHS:
+                yy = y + offset
+                key = f"{yy}-{month:02d}"
+                # Refetch the newest season each run; JMA revises recent months.
+                if key not in cache or y >= latest:
+                    todo.append((yy, month, key))
+        if not todo:
+            print(f"{station_ja:<6} {len(cache):>4} months cached, nothing to do")
+            continue
+        done = 0
+        for yy, month, key in todo:
+            try:
+                snow, depth = daily_month(st["prec_no"], st["block_no"],
+                                          st["kind"], yy, month)
+            except Exception as e:
+                sys.stderr.write(f"  {station_ja} {key}: {e}\n")
+                continue
+            cache[key] = {"snow": snow, "depth": depth}
+            done += 1
+            time.sleep(1.0)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cache, f, separators=(",", ":"), sort_keys=True)
+        print(f"{station_ja:<6} {'/'.join(resorts):<26} +{done:>4} months, "
+              f"{len(cache):>4} cached -> {os.path.basename(path)}")
+
+
 def to_seasons(monthly, resort, st, note):
     """Assemble Nov-Apr ski seasons from adjacent cold-season rows."""
     rows = []
@@ -449,6 +558,12 @@ def build():
             "station_m": st.get("elevation_m"),
             "region": st.get("region") or PREC.get(int(rows[0]["prec_no"]), ""),
             "area": area_for(rows[0]["prec_no"]),
+            # Station-level daily file, fetched on demand by the planner.
+            # Keyed by station so 旭川 is downloaded once for both resorts.
+            "daily": (f"{rows[0]['prec_no']}-{rows[0]['block_no']}"
+                      if os.path.exists(os.path.join(
+                          DAILY, f"{rows[0]['prec_no']}-{rows[0]['block_no']}.json"))
+                      else None),
             "areas": meta.get("areas", ""),
             "base": meta.get("base"),
             "top": meta.get("top"),
@@ -515,6 +630,8 @@ if __name__ == "__main__":
         discover()
     elif cmd == "fetch":
         fetch(sys.argv[2:] or list(RESORTS))
+    elif cmd == "daily":
+        daily(sys.argv[2:] or list(RESORTS))
     elif cmd == "build":
         build()
     elif cmd == "verify":

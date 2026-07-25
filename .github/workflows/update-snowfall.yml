@@ -46,6 +46,11 @@ jobs:
       - name: Check Kutchan against the transcribed table
         run: python3 jma_snowfall.py verify
 
+      # Cached station-months are skipped, so this only picks up the season
+      # in progress -- roughly 54 requests, not the ~2,900 of a cold start.
+      - name: Fetch daily records
+        run: python3 jma_snowfall.py daily
+
       - name: Rebuild site
         run: python3 jma_snowfall.py build
 
