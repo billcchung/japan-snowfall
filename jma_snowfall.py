@@ -9,6 +9,7 @@ Stdlib only. Run from anywhere with access to data.jma.go.jp.
     python3 jma_snowfall.py fetch         # pull every resort in RESORTS
     python3 jma_snowfall.py fetch niseko hakuba
     python3 jma_snowfall.py build         # regenerate index.html
+    python3 jma_snowfall.py verify        # Kutchan vs the transcribed table
 
 Notes on the source data
 ------------------------
@@ -41,6 +42,8 @@ BASE = "https://www.data.jma.go.jp/stats/etrn"
 UA = "Mozilla/5.0 (compatible; personal snowfall research; stdlib urllib)"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 INDEX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "station_index.json")
+FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "fixtures", "niseko_kutchan.csv")
 
 # JMA region codes (prec_no). Hokkaido is split by subprefecture.
 PREC = {
@@ -96,6 +99,20 @@ RESORTS = {
 
 MONTH_COLS = ["jan", "feb", "mar", "apr", "may", "jun", "jul",
               "aug", "sep", "oct", "nov", "dec"]
+
+# Coarse grouping for the resort picker, in display order.
+AREAS = ["Hokkaido", "Tohoku", "Niigata & Nagano", "Elsewhere"]
+
+
+def area_for(prec_no):
+    p = int(prec_no)
+    if 11 <= p <= 24:
+        return "Hokkaido"
+    if 31 <= p <= 36:
+        return "Tohoku"
+    if p in (48, 54):
+        return "Niigata & Nagano"
+    return "Elsewhere"
 
 
 # --------------------------------------------------------------------------
@@ -204,11 +221,26 @@ def load_index():
 
 TAG = re.compile(r"<[^>]+>")
 ROW = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S | re.I)
-CELL = re.compile(r"<t[dh][^>]*>(.*?)</t[dh]>", re.S | re.I)
+CELL_OPEN = re.compile(r"<t[dh][^>]*>", re.S | re.I)
+CELL_CLOSE = re.compile(r"</t[dh]>", re.S | re.I)
 
 
 def cell_text(html):
     return TAG.sub("", html).replace("&nbsp;", " ").strip()
+
+
+def cells(row_html):
+    """Split a row on opening cell tags, not matched pairs.
+
+    JMA omits the closing </td> on the year cell of the surface monthly
+    table, so matching <td>...</td> swallows the following cell and merges
+    the two values -- 1953 and its January total arrive as "1953262". Every
+    row then fails the column count and the table parses to nothing.
+    """
+    out = []
+    for part in CELL_OPEN.split(row_html)[1:]:
+        out.append(cell_text(CELL_CLOSE.split(part, 1)[0]))
+    return out
 
 
 def parse_number(s):
@@ -222,43 +254,96 @@ def parse_number(s):
         return None
 
 
-# Verified against the surface-station page for Kutchan (47433): the
-# observation-start monthly table is monthly_s3.php and the snowfall element
-# is view=p6. The AMeDAS equivalent was not reachable when this was written,
-# so every plausible combination is tried and the one that actually returns
-# the 降雪の深さ table wins.
-SCRIPTS = {"s": ["monthly_s3.php"], "a": ["monthly_a3.php", "monthly_s3.php"]}
-CODES = {"s": ["p6"], "a": ["p2", "p6", "p3", "p1", "a4"]}
+# The two station kinds need different endpoints.
+#
+# Surface stations ("s") publish monthly_s3.php, which returns every year of
+# record in one table; snowfall is view=p6. Verified against Kutchan (47433).
+#
+# AMeDAS stations ("a") have no equivalent. Their station index offers only
+# annually_a.php and the nml_amd_* normals, and monthly_a3.php -- which an
+# earlier version of this script guessed at -- is a 404 everywhere. Monthly
+# values come from monthly_a1.php, one calendar year per request.
+SURFACE_URL = (BASE + "/view/monthly_s3.php?prec_no={prec}&block_no={block}"
+               "&year=&month=&day=&view=p6")
+AMEDAS_URL = (BASE + "/view/monthly_a1.php?prec_no={prec}&block_no={block}"
+              "&year={year}&month=&day=&view=")
+STATION_URL = (BASE + "/index.php?prec_no={prec}&block_no={block}"
+               "&year=&month=&day=&view=")
+
+YEAR_LINK = re.compile(r"index\.php\?prec_no=\d+&block_no=\w+&year=(\d{4})")
+
+
+def monthly_surface(prec_no, block_no):
+    url = SURFACE_URL.format(prec=prec_no, block=block_no)
+    html = get(url)
+    if "降雪の深さの月合計値" not in html:
+        raise RuntimeError(f"no snowfall table at {url}")
+    data = {}
+    for row_html in ROW.findall(html):
+        vals = cells(row_html)
+        if len(vals) < 13:
+            continue
+        m = re.match(r"^(\d{4})$", vals[0])
+        if not m:
+            continue
+        data[int(m.group(1))] = [parse_number(c) for c in vals[1:13]]
+    if not data:
+        raise RuntimeError(f"snowfall table at {url} parsed to nothing")
+    return data, url
+
+
+def amedas_years(prec_no, block_no):
+    """The station index lists one link per year of record."""
+    html = get(STATION_URL.format(prec=prec_no, block=block_no))
+    years = sorted({int(y) for y in YEAR_LINK.findall(html)})
+    if not years:
+        raise RuntimeError(f"no year links for prec={prec_no} block={block_no}")
+    return years
+
+
+def monthly_amedas(prec_no, block_no):
+    """One request per calendar year, twelve month rows each.
+
+    Table width varies between stations -- those that skip wind, temperature
+    or sunshine emit fewer columns -- so snowfall is read from the end. The
+    three 雪 columns are always last and always ordered 降雪の深さ合計,
+    降雪の深さ日合計の最大, 最深積雪.
+    """
+    years = amedas_years(prec_no, block_no)
+    data = {}
+    for year in years:
+        url = AMEDAS_URL.format(prec=prec_no, block=block_no, year=year)
+        try:
+            html = get(url, tries=2)
+        except Exception as e:
+            sys.stderr.write(f"    {year}: {e}\n")
+            continue
+        if "降雪の深さ" not in html:
+            continue
+        months = [None] * 12
+        for row_html in ROW.findall(html):
+            vals = cells(row_html)
+            if len(vals) < 4:
+                continue
+            m = re.match(r"^(\d{1,2})$", vals[0])
+            if not m or not 1 <= int(m.group(1)) <= 12:
+                continue
+            months[int(m.group(1)) - 1] = parse_number(vals[-3])
+        if any(v is not None for v in months):
+            data[year] = months
+        time.sleep(0.7)
+    if not data:
+        raise RuntimeError(
+            f"no snowfall rows for prec={prec_no} block={block_no}; "
+            f"station may not measure snow")
+    return data, AMEDAS_URL.format(prec=prec_no, block=block_no, year=years[-1])
 
 
 def monthly_table(prec_no, block_no, kind):
-    """Return {year: [12 monthly snowfall values]} from the snowfall view."""
-    attempted = []
-    for script in SCRIPTS[kind]:
-        for code in CODES[kind]:
-            url = (f"{BASE}/view/{script}?prec_no={prec_no}&block_no={block_no}"
-                   f"&year=&month=&day=&view={code}")
-            attempted.append(f"{script}?view={code}")
-            try:
-                html = get(url, tries=1)
-            except Exception:
-                continue
-            if "降雪の深さの月合計値" not in html:
-                continue
-            data = {}
-            for row_html in ROW.findall(html):
-                cells = [cell_text(c) for c in CELL.findall(row_html)]
-                if len(cells) < 13:
-                    continue
-                m = re.match(r"^(\d{4})$", cells[0])
-                if not m:
-                    continue
-                data[int(m.group(1))] = [parse_number(c) for c in cells[1:13]]
-            if data:
-                return data, url
-    raise RuntimeError(
-        f"no snowfall table for prec={prec_no} block={block_no}. "
-        f"Station may not measure snow. Tried: {', '.join(attempted)}")
+    """Return {year: [12 monthly snowfall values]}, calendar months."""
+    if kind == "s":
+        return monthly_surface(prec_no, block_no)
+    return monthly_amedas(prec_no, block_no)
 
 
 def to_seasons(monthly, resort, st, note):
@@ -291,29 +376,46 @@ def to_seasons(monthly, resort, st, note):
 def fetch(names):
     index = load_index()
     os.makedirs(OUT, exist_ok=True)
+    # Several resorts share a station -- Asahidake and Kamui are both 旭川,
+    # Shiga Kogen borrows Nozawa's. Fetch each station once. That was a minor
+    # saving when a station meant one request and matters now that an AMeDAS
+    # station means one request per year of record.
+    groups = {}
     for resort in names:
-        station_ja, prec, note = RESORTS[resort]
+        station_ja, prec, _ = RESORTS[resort]
+        groups.setdefault((prec, station_ja), []).append(resort)
+
+    for (prec, station_ja), resorts in groups.items():
+        who = "/".join(resorts)
         st = index.get(f"{prec}:{station_ja}")
         if not st:
             near = [k for k in index if k.startswith(f"{prec}:")][:8]
-            sys.stderr.write(f"{resort}: {station_ja} not in prec {prec}. "
+            sys.stderr.write(f"{who}: {station_ja} not in prec {prec}. "
                              f"Nearby keys: {near}\n")
             continue
         try:
             monthly, url = monthly_table(st["prec_no"], st["block_no"], st["kind"])
         except Exception as e:
-            sys.stderr.write(f"{resort}: {e}\n")
+            sys.stderr.write(f"{who}: {e}\n")
             continue
-        rows = to_seasons(monthly, resort, st, note)
-        path = os.path.join(OUT, f"{resort}.csv")
-        with open(path, "w", newline="", encoding="utf-8") as f:
-            w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-            w.writeheader()
-            w.writerows(rows)
-        span = f"{rows[0]['season']}-{rows[-1]['season']}"
-        avg = round(sum(r["season_total_cm"] for r in rows[-25:]) / min(25, len(rows)))
-        print(f"{resort:<16} {station_ja:<6} {len(rows):>3} seasons {span}  "
-              f"last-25 avg {avg:>5}cm")
+        for resort in resorts:
+            note = RESORTS[resort][2]
+            rows = to_seasons(monthly, resort, st, note)
+            if not rows:
+                sys.stderr.write(
+                    f"{resort}: {station_ja} has a snowfall table but no "
+                    f"adjacent-year pairs to build a season from\n")
+                continue
+            path = os.path.join(OUT, f"{resort}.csv")
+            with open(path, "w", newline="", encoding="utf-8") as f:
+                w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+                w.writeheader()
+                w.writerows(rows)
+            span = f"{rows[0]['season']}-{rows[-1]['season']}"
+            avg = round(sum(r["season_total_cm"] for r in rows[-25:])
+                        / min(25, len(rows)))
+            print(f"{resort:<16} {station_ja:<6} {len(rows):>3} seasons {span}  "
+                  f"last-25 avg {avg:>5}cm")
         time.sleep(1.5)
 
 
@@ -345,6 +447,8 @@ def build():
         payload[key] = {
             "station_ja": rows[0]["station_ja"],
             "station_m": st.get("elevation_m"),
+            "region": st.get("region") or PREC.get(int(rows[0]["prec_no"]), ""),
+            "area": area_for(rows[0]["prec_no"]),
             "areas": meta.get("areas", ""),
             "base": meta.get("base"),
             "top": meta.get("top"),
@@ -355,6 +459,7 @@ def build():
                 "m": [int(float(r[k])) for k in
                       ("nov", "dec", "jan", "feb", "mar", "apr")],
                 "t": int(float(r["season_total_cm"])),
+                "i": int(r.get("incomplete") or 0),
             } for r in rows],
         }
     tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), "template.html")
@@ -368,6 +473,42 @@ def build():
     print(f"{len(payload)} resorts -> {out}")
 
 
+# --------------------------------------------------------------------------
+# regression check
+# --------------------------------------------------------------------------
+
+def verify():
+    """Check the scraped Kutchan series against the hand-transcribed table.
+
+    Kutchan is the one station whose numbers were confirmed independently
+    against Ski Asia's published figures, so it is the canary for a JMA
+    markup change that parses without erroring but returns the wrong column.
+    """
+    scraped = os.path.join(OUT, "niseko.csv")
+    if not os.path.exists(scraped):
+        sys.exit("no data/niseko.csv -- run 'fetch niseko' first")
+    if not os.path.exists(FIXTURE):
+        sys.exit(f"missing fixture {FIXTURE}")
+    with open(scraped, encoding="utf-8") as f:
+        got = {r["season"]: int(float(r["season_total_cm"]))
+               for r in csv.DictReader(f)}
+    with open(FIXTURE, encoding="utf-8") as f:
+        want = {r["season"]: int(float(r["season_total_cm"]))
+                for r in csv.DictReader(f)}
+    bad = []
+    for season in sorted(want):
+        if season not in got:
+            bad.append(f"  {season}: missing from scrape")
+        elif got[season] != want[season]:
+            bad.append(f"  {season}: scraped {got[season]}cm, "
+                       f"fixture {want[season]}cm")
+    if bad:
+        sys.stderr.write(f"FAIL {len(bad)} of {len(want)} seasons differ:\n")
+        sys.stderr.write("\n".join(bad[:20]) + "\n")
+        sys.exit(1)
+    print(f"OK  {len(want)} Kutchan seasons match the transcribed table")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "fetch"
     if cmd == "discover":
@@ -376,5 +517,7 @@ if __name__ == "__main__":
         fetch(sys.argv[2:] or list(RESORTS))
     elif cmd == "build":
         build()
+    elif cmd == "verify":
+        verify()
     else:
         sys.exit(__doc__)

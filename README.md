@@ -18,13 +18,11 @@ Then **Settings → Pages → Source: Deploy from a branch**, branch `main`, fol
 `/ (root)`. The site appears at
 `https://YOUR-USERNAME.github.io/japan-snowfall/` within a minute or two.
 
-## Fill in the other 28 resorts
+## Fill in the other 19 resorts
 
-Only Niseko has data committed. **Actions → Update snowfall data → Run
-workflow.** GitHub's runners can reach `data.jma.go.jp`, so the scrape happens
-there. First run takes about three minutes: it builds the station index, pulls
-all 29 resorts, rebuilds `index.html`, and commits the result. After that it
-runs itself every Monday from October through May.
+All ten Hokkaido resorts have data committed. The Honshu resorts do not.
+**Actions → Update snowfall data → Run workflow** pulls everything and commits
+the result; after that it runs itself every Monday from October through May.
 
 If the workflow can't push, check **Settings → Actions → General → Workflow
 permissions** is set to *Read and write*.
@@ -34,10 +32,15 @@ To run it locally instead:
 ```bash
 python3 jma_snowfall.py discover
 python3 jma_snowfall.py fetch
+python3 jma_snowfall.py verify
 python3 jma_snowfall.py build
 ```
 
-Standard library only.
+Standard library only. `discover` is one request per prefecture. `fetch` is
+one request per surface station but one request *per year of record* per
+AMeDAS station, so a full run is a few thousand requests and takes a while —
+the script rate limits itself because JMA asks people not to hammer the site.
+Pass resort names to `fetch` to do a subset.
 
 ## What's in the repo
 
@@ -45,10 +48,11 @@ Standard library only.
 |---|---|
 | `index.html` | The site. Generated — edit `template.html` instead. |
 | `template.html` | Markup and styling. `/*__DATA__*/null` is where the data lands. |
-| `jma_snowfall.py` | `discover`, `fetch`, `build`. Resort-to-station mapping at the top. |
-| `data/*.csv` | One file per resort, one row per season. |
+| `jma_snowfall.py` | `discover`, `fetch`, `verify`, `build`. Resort-to-station mapping at the top. |
+| `data/*.csv` | One file per resort, one row per season. Generated. |
 | `reference.json` | Resort elevations and claimed annual snowfall. |
-| `seed_kutchan.py` | The hand-transcribed Kutchan table, kept as a regression fixture. |
+| `fixtures/niseko_kutchan.csv` | The hand-transcribed Kutchan table. `verify` checks the scrape against it. |
+| `seed_kutchan.py` | Prints that fixture to stdout: `python3 seed_kutchan.py > fixtures/niseko_kutchan.csv`. |
 
 ## Reading the numbers
 
@@ -76,11 +80,18 @@ average. All exact.
 There is no station on the plateau. Treat it as a placeholder or drop it from
 `RESORTS`.
 
-**AMeDAS URLs are inferred.** Surface stations use `monthly_s3.php?view=p6`,
-confirmed against Kutchan. Most resort stations are AMeDAS, whose equivalent
-wasn't reachable during development, so `monthly_table()` tries several
-script and view combinations and keeps whichever returns a table headed
-降雪の深さの月合計値. If a resort fails, that's the first place to look.
+**The two station kinds need different endpoints.** Surface stations publish
+`monthly_s3.php?view=p6`, every year of record in one table. AMeDAS stations
+have no equivalent — their station index offers only `annually_a.php` and the
+`nml_amd_*` normals — so they go through `monthly_a1.php?year=YYYY`, one
+request per calendar year. Column position is read from the end of the row,
+because stations that skip wind, temperature or sunshine emit fewer columns;
+the three 雪 columns are always last.
+
+**JMA omits a closing `</td>`** on the year cell of the surface monthly table,
+so a naive `<td>…</td>` match merges the year with the January value and every
+row fails its column count. `cells()` splits on opening tags for that reason.
+If a table ever parses to zero rows, check that first.
 
 **Station discovery** parses JMA's `viewPoint(...)` calls on the region maps. If
 that markup changes there's a fallback that scrapes bare block numbers, but it

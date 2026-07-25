@@ -45,7 +45,13 @@ h1 .ja{display:block;font-size:.44em;font-weight:500;color:var(--mute);letter-sp
 .lede b{color:var(--ice);font-weight:500}
 
 /* ---------- resort picker ---------- */
-.picker{display:flex;flex-wrap:wrap;gap:7px;margin:26px 0 8px}
+.picker{margin:26px 0 8px}
+.pgroup{display:flex;flex-wrap:wrap;gap:7px;align-items:baseline;margin-bottom:9px}
+.pgroup h2{
+  font-family:var(--mono);font-size:10px;font-weight:400;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--mute);opacity:.62;
+  flex:0 0 100%;margin:0 0 5px
+}
 .picker button{
   font-family:var(--mono);font-size:12px;letter-spacing:.04em;
   background:transparent;color:var(--mute);border:1px solid var(--edge);
@@ -54,6 +60,7 @@ h1 .ja{display:block;font-size:.44em;font-weight:500;color:var(--mute);letter-sp
 .picker button:hover{border-color:var(--edge2);color:var(--ice)}
 .picker button[aria-pressed=true]{background:var(--ice);color:var(--void);border-color:var(--ice);font-weight:600}
 .picker button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
+tr.partial .sea abbr{border:0;text-decoration:none;color:var(--s3);cursor:help;padding-left:2px}
 
 .station{
   font-family:var(--mono);font-size:12px;color:var(--dim);
@@ -208,7 +215,12 @@ const LABEL = {
   yuzawa:"Yuzawa", itoigawa:"Charmant Hiuchi", minakami:"Minakami", nasu:"Nasu",
   takasu:"Takasu"
 };
+// LABEL supplies display names only. The picker is driven by whatever is in
+// DATA, so a resort with committed data but no entry here still renders.
 const ALL = Object.keys(LABEL);
+const AREAS = ["Hokkaido","Tohoku","Niigata & Nagano","Elsewhere"];
+const title = k => k.split("-").map(w => w[0].toUpperCase()+w.slice(1)).join(" ");
+const nameOf = k => LABEL[k] || title(k);
 const MONTHS = ["Nov","Dec","Jan","Feb","Mar","Apr"];
 const STOPS = [0,50,100,150,200,300];
 const RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
@@ -241,14 +253,26 @@ function boot(){
       "locally, to fill in the rest.";
   }
   const nav = el("picker");
-  ALL.filter(k => have.includes(k)).forEach(k => {
-    const b = document.createElement("button");
-    b.textContent = LABEL[k]; b.dataset.k = k; b.setAttribute("aria-pressed","false");
-    b.onclick = () => select(k);
-    nav.appendChild(b);
+  const order = k => { const i = ALL.indexOf(k); return i < 0 ? ALL.length : i; };
+  AREAS.forEach(area => {
+    const ks = have.filter(k => (DATA[k].area || "Elsewhere") === area)
+                   .sort((a,b) => order(a) - order(b));
+    if(!ks.length) return;
+    const g = document.createElement("div");
+    g.className = "pgroup";
+    g.innerHTML = "<h2>" + area + "</h2>";
+    ks.forEach(k => {
+      const b = document.createElement("button");
+      b.textContent = nameOf(k); b.dataset.k = k;
+      b.setAttribute("aria-pressed","false");
+      b.onclick = () => select(k);
+      g.appendChild(b);
+    });
+    nav.appendChild(g);
   });
   buildMonths(); buildLegend();
-  select(have[0]);
+  const first = nav.querySelector("button");
+  select(first ? first.dataset.k : have[0]);
 }
 
 function buildMonths(){
@@ -280,7 +304,7 @@ function buildLegend(){
 
 function select(k){
   current = k;
-  [...el("picker").children].forEach(b =>
+  el("picker").querySelectorAll("button").forEach(b =>
     b.setAttribute("aria-pressed", b.dataset.k === k));
   render();
 }
@@ -297,11 +321,15 @@ function render(){
     " · " + rows.length + " seasons, " + rows[0].s + " to " +
     rows[rows.length-1].s + ".";
 
-  const recent = rows.slice(-25), totals = recent.map(r => r.t);
-  const first = rows.slice(0,10), last = rows.slice(-10);
+  // Seasons with a month missing from the JMA record would otherwise show up
+  // as the leanest winter on file. Keep them in the matrix, out of the stats.
+  const full = rows.filter(r => !r.i);
+  const stat = full.length >= 10 ? full : rows;
+  const recent = stat.slice(-25), totals = recent.map(r => r.t);
+  const first = stat.slice(0,10), last = stat.slice(-10);
   const drift = Math.round((mean(last.map(r=>r.t)) / mean(first.map(r=>r.t)) - 1) * 100);
-  const best = rows.reduce((a,b) => b.t > a.t ? b : a);
-  const worst = rows.reduce((a,b) => b.t < a.t ? b : a);
+  const best = stat.reduce((a,b) => b.t > a.t ? b : a);
+  const worst = stat.reduce((a,b) => b.t < a.t ? b : a);
   const peak = MONTHS[[0,1,2,3,4,5].reduce((a,i) =>
     mean(recent.map(r=>r.m[i])) > mean(recent.map(r=>r.m[a])) ? i : a, 0)];
 
@@ -322,12 +350,18 @@ function render(){
     `<div class="stat"><dt>${t}</dt><dd>${v}</dd><p class="sub">${s}</p></div>`).join("");
 
   const max = Math.max(...rows.map(r => r.t));
+  const lean = mean(rows.map(r => r.t)) * 0.7;
   el("matrix").tBodies[0].innerHTML = rows.map(r => {
     const cells = r.m.map((cm,i) =>
       `<td class="cell" title="${MONTHS[i]} ${r.s} — ${cm}cm">` +
       `<span style="background:${shade(cm)}"></span></td>`).join("");
-    return `<tr${r.t < mean(rows.map(x=>x.t))*0.7 ? ' class="dim"' : ''}>` +
-      `<td class="sea">${r.s}</td>${cells}` +
+    // A partial season would otherwise show a confident total built from
+    // months JMA never recorded.
+    const cls = [r.t < lean ? "dim" : "", r.i ? "partial" : ""].filter(Boolean).join(" ");
+    const mark = r.i
+      ? '<abbr title="One or more months missing from the JMA record">*</abbr>' : "";
+    return `<tr${cls ? ` class="${cls}"` : ""}>` +
+      `<td class="sea">${r.s}${mark}</td>${cells}` +
       `<td class="tot"><i class="bar" style="width:${(r.t/max*46).toFixed(1)}px"></i>` +
       `${r.t}</td></tr>`;
   }).join("");

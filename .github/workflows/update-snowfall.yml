@@ -40,6 +40,12 @@ jobs:
       - name: Fetch snowfall records
         run: python3 jma_snowfall.py fetch
 
+      # Kutchan's series was confirmed against independently published
+      # figures, so it catches a JMA markup change that still parses but
+      # returns the wrong column. Fail before anything is committed.
+      - name: Check Kutchan against the transcribed table
+        run: python3 jma_snowfall.py verify
+
       - name: Rebuild site
         run: python3 jma_snowfall.py build
 
