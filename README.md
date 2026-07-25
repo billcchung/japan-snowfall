@@ -4,19 +4,12 @@ Historical snowfall for Japanese ski resorts, taken from Japan Meteorological
 Agency station records instead of resort marketing figures. A static site — no
 build tooling, no dependencies, one Python script.
 
-## Publish it
+## Where it lives
 
-The repo is already initialised with one commit. Create an empty repo on GitHub
-(no README, no .gitignore — this repo has both), then:
+<https://billcchung.github.io/japan-snowfall/>
 
-```bash
-git remote add origin git@github.com:YOUR-USERNAME/japan-snowfall.git
-git push -u origin main
-```
-
-Then **Settings → Pages → Source: Deploy from a branch**, branch `main`, folder
-`/ (root)`. The site appears at
-`https://YOUR-USERNAME.github.io/japan-snowfall/` within a minute or two.
+Served by GitHub Pages from `main` at the repo root. Pushing to `main`
+redeploys it; there is no build step.
 
 ## Fill in the other 19 resorts
 
