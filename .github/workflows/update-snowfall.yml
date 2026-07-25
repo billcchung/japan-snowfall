@@ -1,0 +1,59 @@
+name: Update snowfall data
+
+# GitHub's runners can reach data.jma.go.jp, so the scrape happens here rather
+# than on your machine. Mondays 05:00 JST through the season, plus a manual
+# trigger from the Actions tab.
+on:
+  schedule:
+    - cron: "0 20 * 10,11,12,1,2,3,4,5 1"
+  workflow_dispatch:
+    inputs:
+      rediscover:
+        description: "Rebuild the station index from scratch"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snowfall-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The station index rarely changes, so it is committed and reused.
+      # Discovery is ~50 requests; the fetch is ~30. Both are rate limited in
+      # the script, because JMA explicitly asks people not to hammer the site.
+      - name: Build station index
+        if: ${{ inputs.rediscover || hashFiles('station_index.json') == '' }}
+        run: python3 jma_snowfall.py discover
+
+      - name: Fetch snowfall records
+        run: python3 jma_snowfall.py fetch
+
+      - name: Rebuild site
+        run: python3 jma_snowfall.py build
+
+      - name: Show what changed
+        run: git diff --stat
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data index.html station_index.json
+          if git diff --staged --quiet; then
+            echo "No change in the JMA figures."
+          else
+            git commit -m "Update snowfall data ($(date -u +%Y-%m-%d))"
+            git push
+          fi

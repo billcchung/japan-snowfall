@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Japan snowfall — JMA station records</title>
+<meta name="description" content="Historical snowfall for Japanese ski resorts, taken from Japan Meteorological Agency station records rather than resort marketing figures. Season totals, month-by-month breakdown and a trip-window planner.">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="Japan snowfall — JMA station records">
+<meta property="og:description" content="What Japan's ski resorts actually get, measured by the JMA station nearest each one.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --void:#080C12; --panel:#11171F; --edge:#1E2833; --edge2:#2C3A49;
+  --ice:#E4EBF2; --mute:#7C8CA0; --dim:#4E5C6E;
+  --s0:#151D26; --s1:#1C3D5C; --s2:#24659B; --s3:#4A6FC4;
+  --s4:#8257BE; --s5:#B4348C; --s6:#D91A6B;
+  --sans:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--void); color:var(--ice); font-family:var(--sans);
+  font-weight:400; -webkit-font-smoothing:antialiased; line-height:1.5;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 80px}
+
+/* ---------- header ---------- */
+header{border-bottom:1px solid var(--edge);padding:38px 0 22px;margin-bottom:34px}
+.kicker{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--mute);margin:0 0 14px
+}
+h1{
+  font-weight:900;font-size:clamp(30px,5.2vw,54px);line-height:1.04;margin:0;
+  letter-spacing:-.02em
+}
+h1 .ja{display:block;font-size:.44em;font-weight:500;color:var(--mute);letter-spacing:.02em;margin-top:10px}
+.lede{max-width:62ch;color:var(--mute);font-size:15px;margin:18px 0 0}
+.lede b{color:var(--ice);font-weight:500}
+
+/* ---------- resort picker ---------- */
+.picker{display:flex;flex-wrap:wrap;gap:7px;margin:26px 0 8px}
+.picker button{
+  font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+  background:transparent;color:var(--mute);border:1px solid var(--edge);
+  padding:7px 12px;border-radius:2px;cursor:pointer;transition:.14s
+}
+.picker button:hover{border-color:var(--edge2);color:var(--ice)}
+.picker button[aria-pressed=true]{background:var(--ice);color:var(--void);border-color:var(--ice);font-weight:600}
+.picker button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
+
+.station{
+  font-family:var(--mono);font-size:12px;color:var(--dim);
+  border-left:2px solid var(--edge2);padding-left:12px;margin:22px 0 40px;max-width:70ch
+}
+.station b{color:var(--mute);font-weight:500}
+
+/* ---------- stat strip ---------- */
+.stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:1px;background:var(--edge);border:1px solid var(--edge);margin-bottom:46px
+}
+.stat{background:var(--panel);padding:16px 18px}
+.stat dt{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);margin:0 0 8px
+}
+.stat dd{margin:0;font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.02em}
+.stat dd small{font-size:12px;color:var(--mute);font-weight:400;margin-left:3px}
+.stat .sub{font-size:11px;color:var(--dim);font-family:var(--mono);margin-top:5px;letter-spacing:.02em}
+
+/* ---------- section ---------- */
+section{margin-bottom:56px}
+h2{
+  font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  margin:0 0 6px;font-family:var(--mono)
+}
+.hint{color:var(--dim);font-size:13px;margin:0 0 20px;max-width:64ch}
+
+/* ---------- the matrix ---------- */
+.matrix{width:100%;overflow-x:auto}
+table{border-collapse:collapse;font-family:var(--mono);font-size:12px;width:100%;min-width:560px}
+th{
+  font-weight:500;color:var(--dim);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;padding:0 0 10px;text-align:center
+}
+th.sea{text-align:left;width:66px}
+th.tot{text-align:right;width:92px}
+td{padding:0;height:17px}
+td.sea{
+  color:var(--mute);font-size:11px;padding-right:12px;white-space:nowrap;
+  font-variant-numeric:tabular-nums
+}
+td.cell{border-right:1px solid var(--void)}
+td.cell span{display:block;height:100%;min-height:15px}
+td.tot{
+  text-align:right;padding-left:12px;color:var(--ice);font-variant-numeric:tabular-nums;
+  position:relative;white-space:nowrap
+}
+tr:hover td.sea,tr:hover td.tot{color:#fff}
+tr.dim td.cell span{opacity:.32}
+.bar{display:inline-block;height:7px;background:var(--edge2);margin-right:7px;vertical-align:middle}
+tr:hover .bar{background:var(--s3)}
+
+.legend{
+  display:flex;align-items:center;gap:0;margin-top:18px;font-family:var(--mono);
+  font-size:10px;color:var(--dim);flex-wrap:wrap
+}
+.legend i{width:34px;height:9px;display:block}
+.legend span{padding:0 7px;letter-spacing:.08em}
+
+/* ---------- planner ---------- */
+.planner{background:var(--panel);border:1px solid var(--edge);padding:22px}
+.months{display:flex;gap:1px;background:var(--edge);border:1px solid var(--edge)}
+.months button{
+  flex:1;background:var(--panel);border:0;color:var(--mute);padding:13px 4px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;transition:.12s
+}
+.months button:hover{color:var(--ice)}
+.months button[aria-pressed=true]{background:var(--s3);color:#fff;font-weight:600}
+.months button:focus-visible{outline:2px solid var(--ice);outline-offset:-2px}
+.result{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:22px;margin-top:22px
+}
+.result div p{margin:0;font-family:var(--mono)}
+.result .lbl{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.result .val{font-size:22px;font-weight:500}
+.result .val small{font-size:11px;color:var(--mute);margin-left:3px;font-weight:400}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--edge);padding-top:22px;color:var(--dim);font-size:12px;max-width:78ch}
+footer a{color:var(--mute)}
+code{font-family:var(--mono);color:var(--mute);background:var(--panel);padding:1px 5px;border:1px solid var(--edge)}
+.warn{border-left:2px solid var(--s5);padding-left:14px;margin:0 0 34px;color:var(--mute);font-size:13px;max-width:66ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:640px){
+  .station{margin-bottom:30px}
+  .stat dd{font-size:21px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="kicker">Japan Meteorological Agency · daily new-snow records</p>
+  <h1>Where the snow actually falls
+    <span class="ja">降雪の深さ月合計 — 観測記録</span></h1>
+  <p class="lede">Every figure here is <b>降雪の深さ</b>, the depth of new snow summed over the
+  month, measured at the official JMA station nearest each resort. Resort marketing numbers
+  are not audited. These are.</p>
+</header>
+
+<div id="gap" class="warn" hidden></div>
+
+<nav class="picker" id="picker" aria-label="Resort"></nav>
+<p class="station" id="station"></p>
+
+<dl class="stats" id="stats"></dl>
+
+<section>
+  <h2>Season by month</h2>
+  <p class="hint">One row per season, November through April. Colour follows JMA's own
+  snow-chart progression — blue for an ordinary month, magenta where the station cleared
+  three metres in thirty days.</p>
+  <div class="matrix">
+    <table id="matrix">
+      <thead><tr>
+        <th class="sea">Season</th><th>Nov</th><th>Dec</th><th>Jan</th>
+        <th>Feb</th><th>Mar</th><th>Apr</th><th class="tot">Total</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="legend" id="legend"></div>
+</section>
+
+<section>
+  <h2>Trip window</h2>
+  <p class="hint">Pick the months you can travel. The numbers below are what those months
+  delivered across the last 25 seasons — not a forecast.</p>
+  <div class="planner">
+    <div class="months" id="months"></div>
+    <div class="result" id="result"></div>
+  </div>
+</section>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = {"niseko":{"station_ja":"倶知安","station_m":null,"areas":"Hirafu / Hanazono / Village / Annupuri","base":260,"top":1200,"claimed_m":17,"note":"Valley town station below the Hirafu base","seasons":[{"s":"1953/54","m":[365,220,262,117,78,4],"t":1046},{"s":"1954/55","m":[77,289,472,215,138,12],"t":1203},{"s":"1955/56","m":[59,169,319,193,117,30],"t":887},{"s":"1956/57","m":[228,481,279,311,163,21],"t":1483},{"s":"1957/58","m":[49,242,280,182,191,12],"t":956},{"s":"1958/59","m":[28,117,403,123,56,21],"t":748},{"s":"1959/60","m":[245,441,437,221,115,47],"t":1506},{"s":"1960/61","m":[119,314,576,206,93,16],"t":1324},{"s":"1961/62","m":[93,275,352,278,175,1],"t":1174},{"s":"1962/63","m":[274,231,174,219,79,21],"t":998},{"s":"1963/64","m":[95,248,279,272,49,9],"t":952},{"s":"1964/65","m":[74,357,348,372,177,70],"t":1398},{"s":"1965/66","m":[156,341,459,223,170,1],"t":1350},{"s":"1966/67","m":[75,572,443,290,152,6],"t":1538},{"s":"1967/68","m":[145,275,500,270,122,0],"t":1312},{"s":"1968/69","m":[75,311,601,258,153,13],"t":1411},{"s":"1969/70","m":[196,587,534,341,346,15],"t":2019},{"s":"1970/71","m":[193,398,385,119,211,9],"t":1315},{"s":"1971/72","m":[77,375,235,172,62,38],"t":959},{"s":"1972/73","m":[95,252,191,288,202,0],"t":1028},{"s":"1973/74","m":[187,437,419,252,129,23],"t":1447},{"s":"1974/75","m":[177,573,438,250,67,5],"t":1510},{"s":"1975/76","m":[43,448,467,167,116,22],"t":1263},{"s":"1976/77","m":[211,428,579,269,115,12],"t":1614},{"s":"1977/78","m":[40,237,452,325,153,11],"t":1218},{"s":"1978/79","m":[16,224,313,243,113,29],"t":938},{"s":"1979/80","m":[101,221,355,438,150,17],"t":1282},{"s":"1980/81","m":[87,275,520,296,208,12],"t":1398},{"s":"1981/82","m":[259,212,414,425,161,30],"t":1501},{"s":"1982/83","m":[39,353,363,357,130,0],"t":1242},{"s":"1983/84","m":[90,305,413,352,211,47],"t":1418},{"s":"1984/85","m":[47,183,413,228,136,2],"t":1009},{"s":"1985/86","m":[243,415,438,346,66,10],"t":1518},{"s":"1986/87","m":[141,171,438,307,121,88],"t":1266},{"s":"1987/88","m":[109,310,475,528,129,5],"t":1556},{"s":"1988/89","m":[101,329,151,135,70,6],"t":792},{"s":"1989/90","m":[46,327,581,104,74,26],"t":1158},{"s":"1990/91","m":[71,217,327,261,150,5],"t":1031},{"s":"1991/92","m":[146,345,265,286,55,1],"t":1098},{"s":"1992/93","m":[72,312,254,298,85,14],"t":1035},{"s":"1993/94","m":[74,349,398,233,253,4],"t":1311},{"s":"1994/95","m":[131,413,382,161,57,15],"t":1159},{"s":"1995/96","m":[105,322,458,350,119,43],"t":1397},{"s":"1996/97","m":[138,283,264,250,173,6],"t":1114},{"s":"1997/98","m":[2,224,452,187,136,2],"t":1003},{"s":"1998/99","m":[232,380,422,333,113,4],"t":1484},{"s":"1999/00","m":[130,238,303,289,149,12],"t":1121},{"s":"2000/01","m":[126,357,387,268,78,1],"t":1217},{"s":"2001/02","m":[114,420,228,196,93,0],"t":1051},{"s":"2002/03","m":[258,433,299,259,78,1],"t":1328},{"s":"2003/04","m":[25,185,307,274,142,14],"t":947},{"s":"2004/05","m":[38,336,448,332,241,2],"t":1397},{"s":"2005/06","m":[138,362,312,196,168,27],"t":1203},{"s":"2006/07","m":[63,206,234,158,160,18],"t":839},{"s":"2007/08","m":[101,184,336,228,38,0],"t":887},{"s":"2008/09","m":[80,246,286,235,126,1],"t":974},{"s":"2009/10","m":[102,246,331,184,214,25],"t":1102},{"s":"2010/11","m":[40,201,420,142,210,24],"t":1037},{"s":"2011/12","m":[82,349,290,216,79,30],"t":1046},{"s":"2012/13","m":[98,306,268,228,124,27],"t":1051},{"s":"2013/14","m":[99,258,317,130,118,24],"t":946},{"s":"2014/15","m":[41,387,230,167,141,3],"t":969},{"s":"2015/16","m":[35,195,258,210,125,18],"t":841},{"s":"2016/17","m":[171,235,160,173,90,4],"t":833},{"s":"2017/18","m":[169,324,259,202,59,25],"t":1038},{"s":"2018/19","m":[104,310,253,141,59,16],"t":883},{"s":"2019/20","m":[86,217,148,158,75,1],"t":685},{"s":"2020/21","m":[61,303,249,247,89,15],"t":964},{"s":"2021/22","m":[58,262,247,213,84,5],"t":869},{"s":"2022/23","m":[28,289,275,233,25,0],"t":850},{"s":"2023/24","m":[125,191,241,134,90,2],"t":783},{"s":"2024/25","m":[37,347,159,204,86,2],"t":835},{"s":"2025/26","m":[45,208,311,134,53,0],"t":751}]}};
+
+const LABEL = {
+  niseko:"Niseko", "niseko-annupuri":"Niseko west", rusutsu:"Rusutsu", kiroro:"Kiroro",
+  sapporo:"Sapporo", furano:"Furano", tomamu:"Tomamu", asahidake:"Asahidake",
+  sahoro:"Sahoro", kamui:"Kamui", hakkoda:"Hakkoda", appi:"Appi", geto:"Geto",
+  zao:"Zao", ani:"Ani", "aomori-spring":"Aomori Spring", "nekoma-alts":"Nekoma / Alts",
+  myoko:"Myoko", "lotte-arai":"Lotte Arai", nozawa:"Nozawa Onsen", madarao:"Madarao",
+  hakuba:"Hakuba", "hakuba-north":"Tsugaike / Cortina", "shiga-kogen":"Shiga Kogen",
+  yuzawa:"Yuzawa", itoigawa:"Charmant Hiuchi", minakami:"Minakami", nasu:"Nasu",
+  takasu:"Takasu"
+};
+const ALL = Object.keys(LABEL);
+const MONTHS = ["Nov","Dec","Jan","Feb","Mar","Apr"];
+const STOPS = [0,50,100,150,200,300];
+const RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
+
+const shade = cm => {
+  if(!cm) return "var(--s0)";
+  let i = 1; while(i < STOPS.length && cm >= STOPS[i]) i++;
+  return `var(${RAMP[i]})`;
+};
+const el = id => document.getElementById(id);
+const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
+const median = a => { const s=[...a].sort((x,y)=>x-y), h=s.length>>1;
+  return s.length%2 ? s[h] : (s[h-1]+s[h])/2; };
+
+let current = null, window_ = [2,3];   // Jan + Feb by default
+
+function boot(){
+  const have = Object.keys(DATA||{});
+  if(!have.length){
+    document.body.innerHTML = "<div class='wrap'><header><h1>No data yet</h1>" +
+      "<p class='lede'>Run the update workflow, or <code>python3 jma_snowfall.py discover</code> then " +
+      "<code>fetch</code>, then <code>build</code>.</p></header></div>";
+    return;
+  }
+  if(have.length < ALL.length){
+    const g = el("gap");
+    g.hidden = false;
+    g.innerHTML = have.length + " of " + ALL.length + " resorts loaded. " +
+      "Run the Update snowfall data workflow, or <code>jma_snowfall.py fetch</code> " +
+      "locally, to fill in the rest.";
+  }
+  const nav = el("picker");
+  ALL.filter(k => have.includes(k)).forEach(k => {
+    const b = document.createElement("button");
+    b.textContent = LABEL[k]; b.dataset.k = k; b.setAttribute("aria-pressed","false");
+    b.onclick = () => select(k);
+    nav.appendChild(b);
+  });
+  buildMonths(); buildLegend();
+  select(have[0]);
+}
+
+function buildMonths(){
+  const box = el("months");
+  MONTHS.forEach((m,i) => {
+    const b = document.createElement("button");
+    b.textContent = m; b.setAttribute("aria-pressed", window_.includes(i));
+    b.onclick = () => {
+      const at = window_.indexOf(i);
+      if(at > -1){ if(window_.length > 1) window_.splice(at,1); }
+      else window_.push(i);
+      [...box.children].forEach((c,j) => c.setAttribute("aria-pressed", window_.includes(j)));
+      render();
+    };
+    box.appendChild(b);
+  });
+}
+
+function buildLegend(){
+  const L = el("legend");
+  L.innerHTML = "<span>0</span>";
+  STOPS.slice(1).concat([null]).forEach((s,i) => {
+    L.insertAdjacentHTML("beforeend",
+      `<i style="background:var(${RAMP[i+1]})"></i>` +
+      `<span>${s ? s : "300+"}</span>`);
+  });
+  L.insertAdjacentHTML("beforeend","<span>cm in the month</span>");
+}
+
+function select(k){
+  current = k;
+  [...el("picker").children].forEach(b =>
+    b.setAttribute("aria-pressed", b.dataset.k === k));
+  render();
+}
+
+function render(){
+  const d = DATA[current], rows = d.seasons;
+  const gap = (d.top && d.station_m != null) ? Math.round(d.top - d.station_m) : null;
+  el("station").innerHTML =
+    "Station <b>" + d.station_ja + "</b>" +
+    (d.station_m != null ? " at " + Math.round(d.station_m) + "m" : "") +
+    (d.areas ? " · covers " + d.areas : "") +
+    (d.base ? " · lifts run " + d.base + "–" + d.top + "m" : "") +
+    (gap != null ? " · <b>" + gap.toLocaleString() + "m below the summit</b>" : "") +
+    " · " + rows.length + " seasons, " + rows[0].s + " to " +
+    rows[rows.length-1].s + ".";
+
+  const recent = rows.slice(-25), totals = recent.map(r => r.t);
+  const first = rows.slice(0,10), last = rows.slice(-10);
+  const drift = Math.round((mean(last.map(r=>r.t)) / mean(first.map(r=>r.t)) - 1) * 100);
+  const best = rows.reduce((a,b) => b.t > a.t ? b : a);
+  const worst = rows.reduce((a,b) => b.t < a.t ? b : a);
+  const peak = MONTHS[[0,1,2,3,4,5].reduce((a,i) =>
+    mean(recent.map(r=>r.m[i])) > mean(recent.map(r=>r.m[a])) ? i : a, 0)];
+
+  el("stats").innerHTML = [
+    ["Typical season", Math.round(mean(totals)) + "<small>cm</small>",
+      "median " + Math.round(median(totals)) + "cm · last 25"],
+    ["Snowiest month", peak, Math.round(Math.max(...MONTHS.map((m,i) =>
+      mean(recent.map(r=>r.m[i]))))) + "cm on average"],
+    ["Best season", best.t + "<small>cm</small>", best.s],
+    ["Leanest season", worst.t + "<small>cm</small>", worst.s],
+    ["Long-term drift", (drift>0?"+":"") + drift + "<small>%</small>",
+      "last 10 vs first 10 seasons"],
+    ["Resort claims", d.claimed_m != null ? d.claimed_m + "<small>m</small>" : "—",
+      d.claimed_m != null
+        ? Math.round(d.claimed_m*100/mean(totals)*10)/10 + "\u00d7 the station figure"
+        : "no published figure"]
+  ].map(([t,v,s]) =>
+    `<div class="stat"><dt>${t}</dt><dd>${v}</dd><p class="sub">${s}</p></div>`).join("");
+
+  const max = Math.max(...rows.map(r => r.t));
+  el("matrix").tBodies[0].innerHTML = rows.map(r => {
+    const cells = r.m.map((cm,i) =>
+      `<td class="cell" title="${MONTHS[i]} ${r.s} — ${cm}cm">` +
+      `<span style="background:${shade(cm)}"></span></td>`).join("");
+    return `<tr${r.t < mean(rows.map(x=>x.t))*0.7 ? ' class="dim"' : ''}>` +
+      `<td class="sea">${r.s}</td>${cells}` +
+      `<td class="tot"><i class="bar" style="width:${(r.t/max*46).toFixed(1)}px"></i>` +
+      `${r.t}</td></tr>`;
+  }).join("");
+
+  const win = recent.map(r => window_.reduce((s,i) => s + r.m[i], 0));
+  const label = window_.slice().sort((a,b)=>a-b).map(i => MONTHS[i]).join(" + ");
+  const big = win.filter(v => v >= mean(win) * 1.2).length;
+  el("result").innerHTML = [
+    ["Window", label, ""],
+    ["Average", Math.round(mean(win)) + "<small>cm</small>", ""],
+    ["Median", Math.round(median(win)) + "<small>cm</small>", ""],
+    ["Range", Math.min(...win) + "–" + Math.max(...win) + "<small>cm</small>", ""],
+    ["Well above average", big + " <small>of " + win.length + "</small>", ""]
+  ].map(([l,v]) =>
+    `<div><p class="lbl">${l}</p><p class="val">${v}</p></div>`).join("");
+
+  el("foot").innerHTML =
+    "Source: Japan Meteorological Agency, 過去の気象データ検索 " +
+    "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>), element " +
+    "降雪の深さ月合計. Seasons are assembled from JMA cold-season years (寒候年, " +
+    "1 Aug – 31 Jul), so November and December come from one calendar-year row and " +
+    "January through April from the next. Stations sit in the valley town rather than " +
+    "on the mountain, and the station-to-summit gap differs by resort — compare a " +
+    "resort against its own history first, and against other resorts only loosely. " +
+    "JMA revises figures retrospectively.";
+}
+
+boot();
+</script>
+</body>
+</html>
