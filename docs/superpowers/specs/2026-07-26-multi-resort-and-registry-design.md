@@ -42,19 +42,28 @@ alongside the 10th–90th percentile, standard deviation as both an absolute and
 a share of typical, powder days, base depth, and whether a different window
 would do better at that resort.
 
-Three charts:
+Two charts:
 
-- **Spread** — one box-and-whisker per resort: quartile box, median bar,
-  whiskers at the 10th and 90th percentile, mean dot, each in the resort's
-  colour. This is the multi-resort answer to variability; overlapping
-  percentile bands on a shared line chart turn to mud.
 - **When to go** — season-scan curves overlaid on shared axes, so it is visible
-  at a glance when every selected resort peaks away from the chosen dates. The
-  percentile band appears only when a single series is showing.
+  at a glance when every selected resort peaks away from the chosen dates. Each
+  line carries its own 10th–90th percentile band, so spread is read in the same
+  place as level: a fat band is a lottery, a tight one is dependable.
+
+  Multiple bands were first assumed to be unreadable and replaced with a
+  box-and-whisker panel. That was wrong on both counts — the boxes divorced
+  spread from the date axis, which is the whole question, and the bands are
+  legible with three things done: fills use `mix-blend-mode: screen`, so on a
+  dark ground overlaps brighten instead of muddying the way plain alpha
+  compositing does; every band is drawn before any mean line, so no fill ever
+  covers a line; and fill opacity scales as `0.24 / n^0.45`, keeping one resort
+  rich and six readable. Band edges are smoothed over a 7-point window because
+  each start date draws on only ~20 seasons and the wobble is sampling noise;
+  the mean line stays exact so the peak marker remains honest. A Spread toggle
+  turns the bands off.
 - **Year by year** — one line per resort across the full record, plus each
   resort's linear trend.
 
-The chart key toggles series visibility. Hidden series drop out of all three
+The chart key toggles series visibility. Hidden series drop out of both
 charts but stay in the table, dimmed, so the comparison is never silently
 incomplete.
 

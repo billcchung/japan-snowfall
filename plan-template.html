@@ -88,7 +88,8 @@ table.cmp tr.top td.big{color:#fff;font-weight:600}
 .chart .axis{fill:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.08em}
 .chart .grid{stroke:var(--edge);stroke-width:1}
 .chart .ln{fill:none;stroke-width:2}
-.chart .bandfill{opacity:.15}
+.chart .bandfill{mix-blend-mode:screen}
+.chart .bandedge{fill:none;stroke-width:1}
 .chart .now{fill:none;stroke:var(--ice);stroke-width:1.5}
 .chart .dot{stroke:none}
 .key{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0 0}
@@ -103,14 +104,15 @@ table.cmp tr.top td.big{color:#fff;font-weight:600}
 .key i{width:14px;height:3px;display:block;flex:0 0 auto}
 .key button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 
-/* box-and-whisker spread */
-.chart .whisk{stroke-width:1.5}
-.chart .box{opacity:.28}
-.chart .boxline{stroke-width:2}
-.chart .cap{stroke-width:1.5}
-.chart .meandot{fill:var(--ice)}
-.chart .lbl{fill:var(--mute);font-family:var(--mono);font-size:10px;letter-spacing:.06em}
 table.cmp tr.off td{opacity:.4}
+.keybar{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:12px}
+.keybar .toggle{
+  background:none;border:1px solid var(--edge2);border-radius:2px;padding:5px 10px;
+  cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--dim)
+}
+.keybar .toggle[aria-pressed=true]{color:var(--ice);border-color:var(--s4)}
+.keybar .toggle:hover{color:var(--ice)}
 </style>
 </head>
 <body>
@@ -172,16 +174,13 @@ table.cmp tr.off td{opacity:.4}
 </section>
 
 <section>
-  <h2>How much it varies</h2>
-  <p class="hint" id="spreadhint"></p>
-  <div class="chart" id="spread"></div>
-</section>
-
-<section>
   <h2>When to go</h2>
   <p class="hint" id="scanhint"></p>
   <div class="chart" id="scan"></div>
-  <div class="key" id="key"></div>
+  <div class="keybar">
+    <div class="key" id="key"></div>
+    <button type="button" class="toggle" id="bands" aria-pressed="true">Spread</button>
+  </div>
 </section>
 
 <section>
@@ -228,6 +227,7 @@ const stdev = a => { const m = mean(a);
 
 let picked = [];
 let hidden = new Set();   // toggled from the chart key, not the resort picker
+let showBands = true;
 let sel = {m1:12, d1:25, m2:1, d2:5};
 let since = 20;
 const cache = {};        // station file id -> {seasonYear: {snow, depth}}
@@ -320,6 +320,11 @@ function buildPicker(){
       nav.appendChild(g);
     }
   }
+  el("bands").onclick = () => {
+    showBands = !showBands;
+    el("bands").setAttribute("aria-pressed", showBands);
+    refresh();
+  };
   el("clear").onclick = () => { picked = []; refresh(); };
   el("area-all").onclick = () => {
     const first = nav.querySelector(".pgroup");
@@ -415,66 +420,52 @@ function axes(W,H,P,maxv,Xof){
 }
 
 function svgScan(series, a){
-  const W=760, H=230, P={l:46,r:14,t:14,b:28};
+  const W=760, H=250, P={l:46,r:14,t:14,b:28};
   const iw=W-P.l-P.r, ih=H-P.t-P.b;
-  const maxv = Math.max(1, ...series.flatMap(s => s.curve.map(c =>
-    series.length === 1 ? c.p90 : c.mean)));
+  // With bands on, the 90th percentile sets the ceiling; without, the means do.
+  const maxv = Math.max(1, ...series.flatMap(s => s.curve.map(c => showBands ? c.p90 : c.mean)));
+  // Thin the fills as more resorts stack up, so three reads rich and six
+  // still reads at all.
+  const bandOp = Math.max(0.08, 0.24 / Math.pow(Math.max(1,series.length), 0.45));
+  const edgeOp = Math.max(0.28, 0.55 / Math.pow(Math.max(1,series.length), 0.30));
   const X = s => P.l + (s/(NDAYS-1))*iw;
   const Y = v => P.t + ih - (Math.min(v,maxv)/maxv)*ih;
+  const path = (curve,k) => curve.map(p => X(p.start).toFixed(1)+","+Y(p[k]).toFixed(1)).join(" ");
+  // The envelope is jagged because each start date draws on only ~20 seasons;
+  // that wobble is sampling noise, not weather. Smooth the band edges for
+  // legibility and leave the mean line exact, so the peak stays honest.
+  const smoothed = (curve,k,w) => curve.map((_,i) => {
+    const lo = Math.max(0,i-w), hi = Math.min(curve.length-1,i+w);
+    let t=0,n=0; for(let j=lo;j<=hi;j++){ t+=curve[j][k]; n++; }
+    return {start:curve[i].start, v:t/n};
+  });
+  const vpath = pts => pts.map(p => X(p.start).toFixed(1)+","+Y(p.v).toFixed(1)).join(" ");
   let body = axes(W,H,P,maxv,X);
-  // The percentile band only reads cleanly for a single resort; with several
-  // selected the overlapping fills turn to mud, so show means alone.
-  if(series.length === 1){
-    const c = series[0].curve;
-    body += `<polygon class="bandfill" fill="${series[0].colour}" points="`
-      + c.map(p=>X(p.start).toFixed(1)+","+Y(p.p90).toFixed(1)).join(" ") + " "
-      + c.slice().reverse().map(p=>X(p.start).toFixed(1)+","+Y(p.p10).toFixed(1)).join(" ")
-      + `"/>`;
+
+  // Every band first, so no fill ever sits on top of a mean line. The fills
+  // use screen blending: on a dark ground overlaps brighten rather than
+  // turning to mud, which is what plain alpha compositing would do.
+  if(showBands){
+    series.forEach(s => {
+      s._hi = smoothed(s.curve,"p90",3); s._lo = smoothed(s.curve,"p10",3);
+      body += `<polygon class="bandfill" fill="${s.colour}" opacity="${bandOp.toFixed(3)}" `
+        + `points="${vpath(s._hi)} ${vpath(s._lo.slice().reverse())}"/>`;
+    });
+    series.forEach(s => {
+      body += `<polyline class="bandedge" stroke="${s.colour}" opacity="${edgeOp.toFixed(3)}" `
+        + `points="${vpath(s._hi)}"/>`
+        + `<polyline class="bandedge" stroke="${s.colour}" opacity="${edgeOp.toFixed(3)}" `
+        + `points="${vpath(s._lo)}"/>`;
+    });
   }
   series.forEach(s => {
-    body += `<polyline class="ln" stroke="${s.colour}" points="`
-      + s.curve.map(p=>X(p.start).toFixed(1)+","+Y(p.mean).toFixed(1)).join(" ") + `"/>`;
-    const pk = s.curve.reduce((x,y)=> y.mean>x.mean?y:x, s.curve[0]);
+    body += `<polyline class="ln" stroke="${s.colour}" points="${path(s.curve,"mean")}"/>`;
+    const pk = s.curve.reduce((x,y) => y.mean>x.mean?y:x, s.curve[0]);
     if(pk) body += `<circle class="dot" fill="${s.colour}" cx="${X(pk.start).toFixed(1)}" `
       + `cy="${Y(pk.mean).toFixed(1)}" r="3.5"><title>${s.name} peaks here</title></circle>`;
   });
   body += `<line class="now" x1="${X(a).toFixed(1)}" y1="${P.t}" x2="${X(a).toFixed(1)}" y2="${P.t+ih}"/>`;
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date">${body}</svg>`;
-}
-
-/* One box per resort: whiskers at the 10th/90th percentile, box across the
-   quartiles, bar at the median, dot at the mean. Reads cleanly with several
-   resorts side by side, which an overlapping percentile band does not. */
-function svgSpread(series){
-  const W=760, H=250, P={l:46,r:14,t:14,b:56};
-  const iw=W-P.l-P.r, ih=H-P.t-P.b;
-  const maxv = Math.max(1, ...series.map(s => s.p90));
-  const step = iw/series.length;
-  const bw = Math.min(46, step*0.42);
-  const X = i => P.l + (i+0.5)*step;
-  const Y = v => P.t + ih - (Math.min(v,maxv)/maxv)*ih;
-  let g = "";
-  [0,0.5,1].forEach(f => { const v=maxv*f, y=P.t+ih-(f*ih);
-    g += `<line class="grid" x1="${P.l}" y1="${y.toFixed(1)}" x2="${P.l+iw}" y2="${y.toFixed(1)}"/>`
-       + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
-  series.forEach((s,i) => {
-    const x = X(i), c = s.colour;
-    const y10=Y(s.p10), y25=Y(s.p25), y50=Y(s.med), y75=Y(s.p75), y90=Y(s.p90);
-    g += `<line class="whisk" stroke="${c}" x1="${x.toFixed(1)}" y1="${y10.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y90.toFixed(1)}"/>`
-       + `<line class="cap" stroke="${c}" x1="${(x-bw/4).toFixed(1)}" y1="${y90.toFixed(1)}" x2="${(x+bw/4).toFixed(1)}" y2="${y90.toFixed(1)}"/>`
-       + `<line class="cap" stroke="${c}" x1="${(x-bw/4).toFixed(1)}" y1="${y10.toFixed(1)}" x2="${(x+bw/4).toFixed(1)}" y2="${y10.toFixed(1)}"/>`
-       + `<rect class="box" fill="${c}" x="${(x-bw/2).toFixed(1)}" y="${y75.toFixed(1)}" `
-       + `width="${bw.toFixed(1)}" height="${Math.max(1,y25-y75).toFixed(1)}"/>`
-       + `<line class="boxline" stroke="${c}" x1="${(x-bw/2).toFixed(1)}" y1="${y50.toFixed(1)}" x2="${(x+bw/2).toFixed(1)}" y2="${y50.toFixed(1)}"/>`
-       + `<circle class="meandot" cx="${x.toFixed(1)}" cy="${Y(s.avg).toFixed(1)}" r="2.5"/>`
-       + `<title>${s.name}: median ${Math.round(s.med)}cm, `
-       + `${Math.round(s.p10)}–${Math.round(s.p90)}cm eight seasons in ten</title>`;
-    const short = s.name.length > 13 ? s.name.slice(0,12) + "…" : s.name;
-    g += `<text class="lbl" x="${x.toFixed(1)}" y="${H-32}" text-anchor="middle">${short}</text>`
-       + `<text class="axis" x="${x.toFixed(1)}" y="${H-18}" text-anchor="middle">`
-       + `±${Math.round(s.sd)}cm · ${Math.round(s.cv)}%</text>`;
-  });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Spread of snowfall for the chosen dates, by resort">${g}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date, with the range each resort delivers">${body}</svg>`;
 }
 
 function svgYoY(series){
@@ -511,9 +502,8 @@ function blank(msg){
   el("verdict").innerHTML = `<span class="nodaily">${msg}</span>`;
   el("cmp").tHead.innerHTML = ""; el("cmp").tBodies[0].innerHTML = "";
   el("scan").innerHTML = ""; el("yoy").innerHTML = ""; el("key").innerHTML = "";
-  el("spread").innerHTML = "";
   el("cmphint").textContent = ""; el("scanhint").textContent = "";
-  el("yoyhint").textContent = ""; el("spreadhint").textContent = "";
+  el("yoyhint").textContent = "";
 }
 
 async function refresh(){
@@ -616,18 +606,6 @@ async function refresh(){
   el("verdict").innerHTML = v;
 
   // ---- charts ----
-  el("spread").innerHTML = svgSpread(vis);
-  const steadiest = [...vis].sort((x,y) => x.cv - y.cv)[0];
-  const swingiest = [...vis].sort((x,y) => y.cv - x.cv)[0];
-  el("spreadhint").innerHTML = `How much these dates swing from season to season. The box `
-    + `spans the middle half of seasons, the bar across it is the median, the whiskers reach `
-    + `the 10th and 90th percentile, and the pale dot is the mean. Under each is the standard `
-    + `deviation and what that is as a share of a typical season — the higher that percentage, `
-    + `the more of a gamble the dates are.`
-    + (vis.length > 1
-        ? ` <b>${steadiest.name}</b> is the most dependable here at ${Math.round(steadiest.cv)}%, `
-          + `<b>${swingiest.name}</b> the least at ${Math.round(swingiest.cv)}%.`
-        : "");
   el("scan").innerHTML = svgScan(vis, a);
   el("key").innerHTML = series.map(s =>
     `<button type="button" data-k="${s.k}" aria-pressed="${!hidden.has(s.k)}">`
@@ -639,11 +617,18 @@ async function refresh(){
       refresh();
     };
   });
-  el("scanhint").innerHTML = `Average snowfall for a ${L}-day trip starting on each date. `
-    + `The dot marks each resort's best window; the white line is your start date.`
-    + (vis.length === 1
-        ? ` The shaded band is the 10th to 90th percentile.`
-        : ` Click a resort in the key below to hide it; leave one showing to see its percentile band.`);
+  const steadiest = [...vis].sort((x,y) => x.cv - y.cv)[0];
+  const swingiest = [...vis].sort((x,y) => y.cv - x.cv)[0];
+  el("scanhint").innerHTML = `The solid line is average snowfall for a ${L}-day trip starting `
+    + `on each date; the dot is that resort's best window and the white line is your start `
+    + `date. The shaded band around each line runs from the 10th to the 90th percentile — `
+    + `a fat band means that window is a lottery, a tight one means it turns up reliably. `
+    + `Click a resort in the key to hide it, or turn the bands off.`
+    + (vis.length > 1
+        ? ` Over your dates <b>${steadiest.name}</b> is the most dependable, swinging `
+          + `${Math.round(steadiest.cv)}% of a typical season, against `
+          + `${Math.round(swingiest.cv)}% for <b>${swingiest.name}</b>.`
+        : "");
 
   const yseries = vis.filter(s => s.allRows.length >= 5);
   if(yseries.length){
