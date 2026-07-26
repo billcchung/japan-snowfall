@@ -16,12 +16,14 @@
 <link rel="stylesheet" href="site.css">
 <style>
 /* ---------- multi-select picker ---------- */
-.picker button::before{
+/* Scoped to .pgbody: the area headers and their All/None controls are buttons
+   too, and a checkbox on them would imply they are selectable resorts. */
+.pgbody button::before{
   content:"";display:inline-block;width:7px;height:7px;margin-right:7px;
   border:1px solid var(--edge2);vertical-align:middle;background:transparent
 }
-.picker button[aria-pressed=true]::before{background:currentColor;border-color:currentColor}
-.picker button[aria-pressed=true]{
+.pgbody button[aria-pressed=true]::before{background:currentColor;border-color:currentColor}
+.pgbody button[aria-pressed=true]{
   background:transparent;color:var(--ice);font-weight:600;
   border-color:var(--swatch,var(--ice))
 }
@@ -318,8 +320,11 @@ async function renderPage(){
     const sx = s.rows.reduce((t,_,i)=>t+i,0), sy = s.rows.reduce((t,r)=>t+r.total,0);
     const sxx = s.rows.reduce((t,_,i)=>t+i*i,0), sxy = s.rows.reduce((t,r,i)=>t+i*r.total,0);
     const den = n*sxx - sx*sx, slope = den ? (n*sxy - sx*sy)/den : 0;
-    return {name:s.name, change: slope*(n-1), pct: s.avg ? slope*(n-1)/s.avg*100 : 0,
-            first:s.rows[0].y, last:s.rows[n-1].y};
+    const change = slope*(n-1);
+    // A fitted change smaller than the season-to-season swing is not a trend
+    // anyone could act on, however confident the percentage looks.
+    return {name:s.name, change, pct: s.avg ? change/s.avg*100 : 0,
+            noisy: Math.abs(change) < s.sd, first:s.rows[0].y, last:s.rows[n-1].y};
   }).sort((x,y) => x.pct - y.pct);
   const low = moved[0], high = moved[moved.length-1];
   const say = m => `${m.pct > 0 ? "+" : ""}${Math.round(m.pct)}%`;
@@ -327,11 +332,17 @@ async function renderPage(){
   el("verdict").innerHTML = moved.length === 1
     ? `Across ${span}, <b>${low.name}</b> has moved ${low.change < 0 ? "down" : "up"} about `
       + `<b>${Math.abs(Math.round(low.change))}cm</b> over these dates, `
-      + `${say(low)} of a typical window.`
+      + `${say(low)} of a typical window`
+      + (low.noisy ? ` — inside its own season-to-season swing, so not a trend to act on.`
+                   : `.`)
     : `Across ${span}, the trend over these dates runs from <b>${low.name}</b> at `
       + `<b>${say(low)}</b> of a typical window to <b>${high.name}</b> at <b>${say(high)}</b>. `
-      + `A single resort's line is noisy and a station move or an instrument change looks `
-      + `the same as weather — read the direction, not the number.`;
+      + (low.noisy || high.noisy
+          ? `Both of those sit inside their own season-to-season swing, so neither is a `
+            + `trend you could act on. `
+          : ``)
+      + `A station move or an instrument change looks the same as weather here — read the `
+      + `direction, not the number.`;
 }
 
 el("showall").onclick = () => { hidden.clear(); renderPage(); };

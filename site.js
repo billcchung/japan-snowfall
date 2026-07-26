@@ -110,6 +110,7 @@ function buildPicker(){
       "workflow to fill in the rest.";
   }
   const nav = el("picker");
+  const multi = !!el("clear");          // records page picks one at a time
   const multiCountry = Object.keys(GROUPS).length > 1;
   let firstArea = true;
   for(const country in GROUPS){
@@ -142,14 +143,35 @@ function buildPicker(){
         btn.onclick = () => toggle(k);
         body.appendChild(btn);
       });
-      g.append(head, body);
+      g.append(head);
+      if(multi){
+        const acts = document.createElement("span");
+        acts.className = "pgacts";
+        const all = document.createElement("button");
+        all.type = "button"; all.textContent = "All";
+        all.onclick = () => {
+          ks.forEach(k => { if(!picked.includes(k)) picked.push(k); });
+          head.setAttribute("aria-expanded", "true");   // show what was just picked
+          renderPage();
+        };
+        const none = document.createElement("button");
+        none.type = "button"; none.textContent = "None";
+        none.onclick = () => {
+          picked = picked.filter(k => !ks.includes(k));
+          renderPage();
+        };
+        acts.append(all, none);
+        g.append(acts);
+      }
+      g.append(body);
       nav.appendChild(g);
     }
   }
+  if(!multi) return;
   el("clear").onclick = () => { picked = []; renderPage(); };
   const areaAll = el("area-all");
   if(areaAll) areaAll.onclick = () => {
-    nav.querySelectorAll('.pghead[aria-expanded=true] + .pgbody button').forEach(b => {
+    nav.querySelectorAll('.pghead[aria-expanded=true] ~ .pgbody button').forEach(b => {
       if(!picked.includes(b.dataset.k)) picked.push(b.dataset.k);
     });
     renderPage();

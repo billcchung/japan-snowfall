@@ -16,12 +16,14 @@
 <link rel="stylesheet" href="site.css">
 <style>
 /* ---------- multi-select picker ---------- */
-.picker button::before{
+/* Scoped to .pgbody: the area headers and their All/None controls are buttons
+   too, and a checkbox on them would imply they are selectable resorts. */
+.pgbody button::before{
   content:"";display:inline-block;width:7px;height:7px;margin-right:7px;
   border:1px solid var(--edge2);vertical-align:middle;background:transparent
 }
-.picker button[aria-pressed=true]::before{background:currentColor;border-color:currentColor}
-.picker button[aria-pressed=true]{
+.pgbody button[aria-pressed=true]::before{background:currentColor;border-color:currentColor}
+.pgbody button[aria-pressed=true]{
   background:transparent;color:var(--ice);font-weight:600;
   border-color:var(--swatch,var(--ice))
 }
@@ -402,6 +404,16 @@ async function renderPage(){
         : "");
 
 }
+
+/* These live on this page only -- the trends page has no Spread control --
+   and were dropped when the shared half moved to site.js. */
+el("showall").onclick = () => { hidden.clear(); renderPage(); };
+el("hideall").onclick = () => { picked.forEach(k => hidden.add(k)); renderPage(); };
+el("bands").onclick = () => {
+  showBands = !showBands;
+  el("bands").setAttribute("aria-pressed", showBands);
+  renderPage();
+};
 
 el("foot").innerHTML =
   "Source: Japan Meteorological Agency, \u904e\u53bb\u306e\u6c17\u8c61\u30c7\u30fc\u30bf\u691c\u7d22 "

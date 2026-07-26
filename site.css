@@ -31,12 +31,12 @@ h1 .ja{display:inline;font-size:.5em;font-weight:500;color:var(--mute);
 
 /* ---------- resort picker ---------- */
 .picker{margin:26px 0 8px}
-.pgroup{display:block;margin-bottom:6px}
+.pgroup{display:block;margin-bottom:6px;position:relative}
 .pghead{
   display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;
   padding:5px 0;cursor:pointer;text-align:left;
   font-family:var(--mono);font-size:10px;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--mute)
+  text-transform:uppercase;color:var(--mute);padding-right:82px
 }
 .pghead:hover{color:var(--ice)}
 .pghead:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
@@ -45,7 +45,15 @@ h1 .ja{display:inline;font-size:.5em;font-weight:500;color:var(--mute);
 .pghead .n{color:var(--dim);letter-spacing:.06em;font-size:9px}
 .pghead .rule{flex:1;height:1px;background:var(--edge)}
 .pgbody{display:flex;flex-wrap:wrap;gap:7px;padding:4px 0 10px}
-.pghead[aria-expanded=false] + .pgbody{display:none}
+/* .pgacts sits between the header and the body, so this needs ~ not +. */
+.pghead[aria-expanded=false] ~ .pgbody{display:none}
+.pgacts{position:absolute;top:3px;right:0;display:flex;gap:12px}
+.pgacts button{
+  background:none;border:0;padding:2px 0;cursor:pointer;color:var(--dim);
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase
+}
+.pgacts button:hover{color:var(--ice)}
+.pgacts button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 .picker button{
   font-family:var(--mono);font-size:12px;letter-spacing:.04em;
   background:transparent;color:var(--mute);border:1px solid var(--edge);
