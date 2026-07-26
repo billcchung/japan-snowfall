@@ -475,6 +475,7 @@ def fetch(names):
         station_ja, prec, _ = RESORTS[resort]
         groups.setdefault((prec, station_ja), []).append(resort)
 
+    unresolved = []
     for (prec, station_ja), resorts in groups.items():
         who = "/".join(resorts)
         st = index.get(f"{prec}:{station_ja}")
@@ -482,6 +483,7 @@ def fetch(names):
             near = [k for k in index if k.startswith(f"{prec}:")][:8]
             sys.stderr.write(f"{who}: {station_ja} not in prec {prec}. "
                              f"Nearby keys: {near}\n")
+            unresolved.append(f"{who} ({station_ja}, prec {prec})")
             continue
         try:
             monthly, url = monthly_table(st["prec_no"], st["block_no"], st["kind"])
@@ -507,6 +509,13 @@ def fetch(names):
             print(f"{resort:<16} {station_ja:<6} {len(rows):>3} seasons {span}  "
                   f"last-25 avg {avg:>5}cm")
         time.sleep(1.5)
+
+    # A station name that is not in the index is a typo in resorts.json, not a
+    # transient failure -- it silently drops the resort from every page, so
+    # fail loudly rather than letting a green workflow hide it.
+    if unresolved:
+        sys.exit("\nunresolved stations (fix resorts.json):\n  "
+                 + "\n  ".join(unresolved))
 
 
 # --------------------------------------------------------------------------

@@ -203,10 +203,10 @@
   "area": "Niigata & Nagano",
   "source": "jma",
   "station": {
-   "name_ja": "新井",
+   "name_ja": "関山",
    "prec_no": 54
   },
-  "note": "Arai 40m; resort base 330m"
+  "note": "Sekiyama 350m; Lotte Arai base 330m — unusually well matched, but the same station Myoko reads from"
  },
  "nozawa": {
   "name": "Nozawa Onsen",
