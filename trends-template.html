@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trends — how each resort's snowfall is changing</title>
+<meta name="description" content="How snowfall in a chosen part of the season has changed at each Japanese ski resort, season by season, from official weather-station records.">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="Trends — how each resort's snowfall is changing">
+<meta property="og:description" content="Season-by-season snowfall for any part of the winter, per resort, with the long-run trend.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+/* ---------- multi-select picker ---------- */
+.picker button::before{
+  content:"";display:inline-block;width:7px;height:7px;margin-right:7px;
+  border:1px solid var(--edge2);vertical-align:middle;background:transparent
+}
+.picker button[aria-pressed=true]::before{background:currentColor;border-color:currentColor}
+.picker button[aria-pressed=true]{
+  background:transparent;color:var(--ice);font-weight:600;
+  border-color:var(--swatch,var(--ice))
+}
+.pickbar{display:flex;gap:16px;align-items:baseline;margin:2px 0 24px}
+.pickbar button{
+  background:none;border:0;padding:0;cursor:pointer;color:var(--dim);
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase
+}
+.pickbar button:hover{color:var(--ice)}
+.pickbar span{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--mute)}
+
+/* ---------- date controls ---------- */
+.planner{background:var(--panel);border:1px solid var(--edge);padding:22px}
+.dates{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:baseline}
+.dates label,.dates .since{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--dim)
+}
+.dates select{
+  font-family:var(--mono);font-size:13px;letter-spacing:.02em;text-transform:none;
+  background:var(--void);color:var(--ice);border:1px solid var(--edge2);
+  padding:6px 8px;margin-left:5px;border-radius:2px;cursor:pointer
+}
+.dates select:focus-visible{outline:2px solid var(--s3);outline-offset:1px}
+.dates .len{font-family:var(--mono);font-size:12px;color:var(--mute)}
+.dates .len b{color:var(--ice);font-weight:600}
+
+.verdict{
+  font-family:var(--mono);font-size:12px;line-height:1.65;color:var(--mute);
+  border-left:2px solid var(--s4);padding:10px 0 10px 14px;margin:20px 0 0
+}
+.verdict b{color:var(--ice);font-weight:600}
+.nodaily{font-family:var(--mono);font-size:12px;color:var(--dim)}
+
+/* ---------- comparison table ---------- */
+.tablewrap{width:100%;overflow-x:auto}
+table.cmp{border-collapse:collapse;font-family:var(--mono);font-size:12px;
+  width:100%;min-width:660px}
+table.cmp th{
+  font-weight:500;color:var(--dim);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;padding:0 10px 10px;text-align:right;white-space:nowrap
+}
+table.cmp th:first-child,table.cmp td:first-child{text-align:left;padding-left:0}
+table.cmp td{padding:9px 10px;text-align:right;border-top:1px solid var(--edge);
+  font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap}
+table.cmp td.who{color:var(--ice)}
+table.cmp td.who i{display:inline-block;width:8px;height:8px;margin-right:9px;
+  vertical-align:middle;font-style:normal}
+table.cmp td.big{color:var(--ice);font-size:14px}
+table.cmp td .sub{color:var(--dim);font-size:10px;letter-spacing:.06em}
+table.cmp tr:hover td{color:var(--ice)}
+table.cmp tr.top td.big{color:#fff;font-weight:600}
+
+/* ---------- charts ---------- */
+.chart{margin:0 0 4px;overflow-x:auto;position:relative}
+.chart svg{display:block;width:100%;min-width:560px;height:auto}
+.chart .axis{fill:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.08em}
+.chart .grid{stroke:var(--edge);stroke-width:1}
+.chart .ln{fill:none;stroke-width:2}
+.chart .bandfill{mix-blend-mode:screen}
+.chart .bandedge{fill:none;stroke-width:1}
+.chart .now{fill:none;stroke:var(--ice);stroke-width:1.5}
+.chart .win{fill:var(--ice);opacity:.09}
+.chart .winedge{fill:none;stroke:var(--ice);stroke-width:1;opacity:.45}
+.chart .dot{stroke:none}
+.chart .guide{stroke:var(--edge2);stroke-width:1}
+.chart .hit{stroke:var(--void);stroke-width:1.5}
+.tip{
+  position:absolute;top:8px;left:0;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--void);border:1px solid var(--edge2);padding:8px 10px;border-radius:2px;
+  font-family:var(--mono);font-size:11px;color:var(--mute);white-space:nowrap;z-index:2;
+  box-shadow:0 6px 20px rgba(0,0,0,.55)
+}
+.tip b{display:block;color:var(--ice);font-weight:600;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:6px}
+.tip span{display:flex;align-items:center;gap:8px;line-height:1.9}
+.tip i{width:8px;height:8px;flex:0 0 auto}
+.tip em{margin-left:auto;padding-left:16px;font-style:normal;color:var(--ice);
+  font-variant-numeric:tabular-nums}
+.tip u{display:block;text-decoration:none;color:var(--dim);font-size:10px;text-align:right}
+.key{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0 0}
+.key button{
+  display:flex;align-items:center;gap:8px;background:none;border:0;padding:3px 0;
+  cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
+  color:var(--mute)
+}
+.key button:hover{color:var(--ice)}
+.key button[aria-pressed=false]{color:var(--dim);text-decoration:line-through}
+.key button[aria-pressed=false] i{opacity:.28}
+.key i{width:14px;height:3px;display:block;flex:0 0 auto}
+.key button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
+
+table.cmp tr.off td{opacity:.4}
+.keybar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:12px}
+/* The key can be long; give it its own row so the controls never interleave. */
+.keybar .key{flex:1 0 100%;margin:0}
+.keybar .toggle{
+  background:none;border:1px solid var(--edge2);border-radius:2px;padding:5px 10px;
+  cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--dim)
+}
+.keybar .toggle[aria-pressed=true]{color:var(--ice);border-color:var(--s4)}
+.keybar .toggle:hover{color:var(--ice)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>How the snow is changing
+    <span class="ja">降雪の深さ日合計 — 年次推移</span></h1>
+  <p class="lede">Season by season, for whichever part of the winter you care about. The
+  question here is whether a resort is getting more or less snow over the decades — not
+  when to book, which the trip planner answers.</p>
+</header>
+
+<nav class="pages" aria-label="Pages">
+  <a href="index.html">Records</a>
+  <a href="plan.html">Trip planner</a>
+  <a href="trends.html" aria-current="page">Trends</a>
+</nav>
+
+<div id="gap" class="warn" hidden></div>
+
+<section>
+  <h2>Resorts</h2>
+  <p class="hint">Pick as many as you like. Resorts sharing one weather station — Asahidake
+  and Kamui both read from 旭川 — will trace the same line.</p>
+  <nav class="picker" id="picker" aria-label="Resorts"></nav>
+  <div class="pickbar">
+    <button type="button" id="clear">Clear all</button>
+    <button type="button" id="area-all">Select open areas</button>
+    <span id="count"></span>
+  </div>
+</section>
+
+<section>
+  <h2>Part of the season</h2>
+  <div class="planner">
+    <div class="dates">
+      <label>From
+        <select id="m1" aria-label="Start month"></select>
+        <select id="d1" aria-label="Start day"></select>
+      </label>
+      <label>To
+        <select id="m2" aria-label="End month"></select>
+        <select id="d2" aria-label="End day"></select>
+      </label>
+      <span class="len" id="len"></span>
+      <span class="since">Over
+        <select id="since" aria-label="Seasons to include"></select>
+      </span>
+      <span class="since">Shown as
+        <select id="yoyunit" aria-label="Units"></select>
+      </span>
+    </div>
+    <p class="verdict" id="verdict"></p>
+  </div>
+</section>
+
+<section>
+  <h2>Season by season</h2>
+  <p class="hint" id="yoyhint"></p>
+  <div class="chart" id="yoy"></div>
+  <div class="keybar">
+    <div class="key" id="key"></div>
+    <button type="button" class="toggle" id="showall">Show all</button>
+    <button type="button" class="toggle" id="hideall">Hide all</button>
+  </div>
+</section>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const GROUPS = /*__GROUPS__*/null;
+const TOTAL = /*__TOTAL__*/0;
+</script>
+<script src="site.js"></script>
+<script>
+let yoyUnit = "week";   // a rate keeps windows of different lengths comparable
+
+function svgYoY(series, scaleFrom, L){
+  const W=760, H=222, P={l:52,r:14,t:28,b:28};
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  // A window total is not comparable between a 5-day trip and a 3-week one,
+  // so default to a rate. The shape is identical either way; only the units
+  // and the axis change.
+  const per = yoyUnit === "week" ? 7 / L : yoyUnit === "month" ? 30 / L : 1;
+  const unit = yoyUnit === "week" ? "cm/week" : yoyUnit === "month" ? "cm/30d" : "cm";
+  const val = r => r.total * per;
+  const scale = (scaleFrom && scaleFrom.length) ? scaleFrom : series;
+  const years = [...new Set(scale.flatMap(s => s.rows.map(r => r.y)))].sort((a,b)=>a-b);
+  if(!years.length) return {svg:"", model:null};
+  const maxv = Math.max(1, ...scale.flatMap(s => s.rows.map(val)));
+  const span = Math.max(1, years[years.length-1]-years[0]);
+  const X = y => P.l + ((y - years[0])/span)*iw;
+  const Y = v => P.t + ih - (v/maxv)*ih;
+  let g = "";
+  [0,0.5,1].forEach(f => { const v=maxv*f, y=P.t+ih-(f*ih);
+    g += `<line class="grid" x1="${P.l}" y1="${y.toFixed(1)}" x2="${P.l+iw}" y2="${y.toFixed(1)}"/>`
+       + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
+  g += `<text class="axis" x="${P.l-6}" y="${(P.t-12).toFixed(0)}" text-anchor="end">${unit}</text>`;
+  const every = Math.max(1, Math.round(years.length/8));
+  years.forEach((y,i) => { if(i % every === 0 || i === years.length-1)
+    g += `<text class="axis" x="${X(y).toFixed(1)}" y="${H-9}" text-anchor="middle">${String(y).slice(2)}</text>`; });
+  series.forEach(s => {
+    g += `<polyline class="ln" stroke="${s.colour}" style="opacity:.75" points="`
+      + s.rows.map(r=>X(r.y).toFixed(1)+","+Y(val(r)).toFixed(1)).join(" ") + `"/>`;
+    const n=s.rows.length;
+    const sx=s.rows.reduce((t,_,i)=>t+i,0), sy=s.rows.reduce((t,r)=>t+val(r),0);
+    const sxx=s.rows.reduce((t,_,i)=>t+i*i,0), sxy=s.rows.reduce((t,r,i)=>t+i*val(r),0);
+    const den=n*sxx-sx*sx, slope=den?(n*sxy-sx*sy)/den:0, icpt=(sy-slope*sx)/n;
+    g += `<line class="ln" stroke="${s.colour}" stroke-dasharray="5 4" stroke-width="1.5" `
+      + `x1="${X(s.rows[0].y).toFixed(1)}" y1="${Y(Math.max(0,icpt)).toFixed(1)}" `
+      + `x2="${X(s.rows[n-1].y).toFixed(1)}" y2="${Y(Math.max(0,icpt+slope*(n-1))).toFixed(1)}"/>`;
+  });
+  g += `<line class="guide" x1="0" y1="${P.t}" x2="0" y2="${P.t+ih}" opacity="0"/>`;
+  series.forEach(s => { g += `<circle class="hit" r="3.5" fill="${s.colour}" opacity="0"/>`; });
+
+  const byYear = series.map(s => { const m = new Map();
+    s.rows.forEach(r => m.set(r.y, r)); return m; });
+  const model = {W, Y, at(xv){
+    let yv = Math.round(years[0] + (xv - P.l)/iw*span);
+    yv = Math.max(years[0], Math.min(years[years.length-1], yv));
+    const rows = [];
+    series.forEach((ser,i) => {
+      const r = byYear[i].get(yv);
+      if(r) rows.push({name:ser.name, colour:ser.colour, y:Y(val(r)),
+                       value: Math.round(val(r)) + unit.replace("cm",""),
+                       extra: Math.round(r.total) + "cm over the window · "
+                              + r.powder + (r.powder===1?" powder day":" powder days")});
+    });
+    if(!rows.length) return null;
+    return {x:X(yv), label:"Season "+seasonLabel(yv), rows};
+  }};
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Snowfall in the chosen window, season by season">${g}</svg>`, model};
+}
+
+function blank(msg){
+  el("verdict").innerHTML = `<span class="nodaily">${msg}</span>`;
+  el("yoy").innerHTML = ""; el("key").innerHTML = ""; el("yoyhint").textContent = "";
+}
+
+async function renderPage(){
+  paintPicker();
+  [...hidden].forEach(k => { if(!picked.includes(k)) hidden.delete(k); });
+  const a = ord(sel.m1, sel.d1), b = ord(sel.m2, sel.d2), L = b - a + 1;
+  el("len").innerHTML = "<b>" + L + "</b> day" + (L===1 ? "" : "s");
+  if(!picked.length) return blank("Pick at least one resort above.");
+
+  const token = picked.join("|") + a + b + since;
+  renderPage.token = token;
+  const series = await seriesFor(a, b, L);
+  if(renderPage.token !== token) return;
+  if(!series.length) return blank("No daily record for the selected resorts.");
+
+  el("key").innerHTML = series.map(s =>
+    `<button type="button" data-k="${s.k}" aria-pressed="${!hidden.has(s.k)}">`
+    + `<i style="background:${s.colour}"></i>${s.name}</button>`).join("");
+  el("key").querySelectorAll("button").forEach(btn => {
+    btn.onclick = () => {
+      const k = btn.dataset.k;
+      if(hidden.has(k)) hidden.delete(k); else hidden.add(k);
+      renderPage();
+    };
+  });
+
+  const vis = series.filter(s => !hidden.has(s.k));
+  const yseries = vis.filter(s => s.rows.length >= 5);
+  const yscale = series.filter(s => s.rows.length >= 5);
+  if(!yscale.length) return blank("Not enough complete seasons for these dates.");
+  const yoy = svgYoY(yseries, yscale, L);
+  el("yoy").innerHTML = yoy.svg;
+  attachHover(el("yoy"), yoy.model);
+
+  const allOff = !vis.length;
+  el("yoyhint").innerHTML = allOff
+    ? `Every resort is hidden — the axes stay so you can see the scale. Use Show all, or `
+      + `click a name in the key.`
+    : `${dateLabel(sel.m1,sel.d1)} – ${dateLabel(sel.m2,sel.d2)} in each season `
+      + `${since ? "of the last " + since : "on record"}. `
+      + (yoyUnit === "total"
+          ? `The solid line is that window's total. `
+          : `The solid line is a rate, so windows of different lengths stay comparable. `)
+      + `Its jaggedness is the year-to-year variability; the dashed line is the linear `
+      + `trend. Hover for a season's exact figures.`;
+
+  // Rank by how fast each resort is changing -- the question this page asks.
+  const moved = (vis.length ? vis : series).map(s => {
+    const n = s.rows.length;
+    const sx = s.rows.reduce((t,_,i)=>t+i,0), sy = s.rows.reduce((t,r)=>t+r.total,0);
+    const sxx = s.rows.reduce((t,_,i)=>t+i*i,0), sxy = s.rows.reduce((t,r,i)=>t+i*r.total,0);
+    const den = n*sxx - sx*sx, slope = den ? (n*sxy - sx*sy)/den : 0;
+    return {name:s.name, change: slope*(n-1), pct: s.avg ? slope*(n-1)/s.avg*100 : 0,
+            first:s.rows[0].y, last:s.rows[n-1].y};
+  }).sort((x,y) => x.pct - y.pct);
+  const low = moved[0], high = moved[moved.length-1];
+  const say = m => `${m.pct > 0 ? "+" : ""}${Math.round(m.pct)}%`;
+  const span = `${seasonLabel(low.first)}\u2013${seasonLabel(low.last)}`;
+  el("verdict").innerHTML = moved.length === 1
+    ? `Across ${span}, <b>${low.name}</b> has moved ${low.change < 0 ? "down" : "up"} about `
+      + `<b>${Math.abs(Math.round(low.change))}cm</b> over these dates, `
+      + `${say(low)} of a typical window.`
+    : `Across ${span}, the trend over these dates runs from <b>${low.name}</b> at `
+      + `<b>${say(low)}</b> of a typical window to <b>${high.name}</b> at <b>${say(high)}</b>. `
+      + `A single resort's line is noisy and a station move or an instrument change looks `
+      + `the same as weather — read the direction, not the number.`;
+}
+
+el("showall").onclick = () => { hidden.clear(); renderPage(); };
+el("hideall").onclick = () => { picked.forEach(k => hidden.add(k)); renderPage(); };
+
+const yu = el("yoyunit");
+[["week","centimetres per week"],["month","centimetres per 30 days"],
+ ["total","total over the window"]].forEach(([v,label]) => {
+  const o = document.createElement("option");
+  o.value = v; o.textContent = label;
+  yu.appendChild(o);
+});
+yu.value = yoyUnit;
+yu.onchange = () => { yoyUnit = yu.value; renderPage(); };
+// A reload can restore a previously chosen option after this runs.
+requestAnimationFrame(() => { if(yu.value !== yoyUnit){ yoyUnit = yu.value; renderPage(); } });
+
+el("foot").innerHTML =
+  "Source: Japan Meteorological Agency, \u904e\u53bb\u306e\u6c17\u8c61\u30c7\u30fc\u30bf\u691c\u7d22 "
+  + "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>), element "
+  + "\u964d\u96ea\u306e\u6df1\u3055\u65e5\u5408\u8a08. Trends are a least-squares fit over the seasons shown "
+  + "and say nothing about why. Station moves, instrument changes and JMA's own "
+  + "retrospective revisions all land in this line, so read it as a direction rather "
+  + "than a measurement.";
+bootShell(3);
+</script>
+</body>
+</html>

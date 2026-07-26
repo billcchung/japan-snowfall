@@ -583,6 +583,7 @@ def build():
             "region": st.get("region") or PREC.get(int(rows[0]["prec_no"]), ""),
             # Station-level daily file, fetched on demand by the planner.
             # Keyed by station so 旭川 is downloaded once for both resorts.
+            "station_id": f"{rows[0]['prec_no']}-{rows[0]['block_no']}",
             "daily": (f"{rows[0]['prec_no']}-{rows[0]['block_no']}"
                       if os.path.exists(os.path.join(
                           DAILY, f"{rows[0]['prec_no']}-{rows[0]['block_no']}.json"))
@@ -600,6 +601,20 @@ def build():
                 "i": int(r.get("incomplete") or 0),
             } for r in rows],
         }
+    # Resorts reading the same station produce identical series. Say so on the
+    # page rather than leaving two matching lines looking like a bug -- 旭川
+    # stands in for both Asahidake and Kamui, 1,500m below the former.
+    # Group by the station itself, not by the daily file -- that file may not
+    # have been fetched yet, and the resorts still share a series regardless.
+    by_station = {}
+    for key, v in payload.items():
+        by_station.setdefault(v["station_id"], []).append(key)
+    for group in by_station.values():
+        if len(group) < 2:
+            continue
+        for key in group:
+            payload[key]["shares"] = [payload[k]["name"] for k in group if k != key]
+
     here = os.path.dirname(os.path.abspath(__file__))
     # Only advertise countries and areas that actually have data, so an empty
     # heading never appears for resorts that have not been fetched yet.
@@ -617,7 +632,8 @@ def build():
         "/*__TOTAL__*/0": str(len(REGISTRY)),
     }
     for tpl_name, out_name in (("template.html", "index.html"),
-                               ("plan-template.html", "plan.html")):
+                               ("plan-template.html", "plan.html"),
+                               ("trends-template.html", "trends.html")):
         tpl = os.path.join(here, tpl_name)
         if not os.path.exists(tpl):
             continue

@@ -61,7 +61,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A data index.html plan.html station_index.json
+          git add -A data index.html plan.html trends.html station_index.json
           if git diff --staged --quiet; then
             echo "No change in the JMA figures."
           else

@@ -13,9 +13,9 @@ redeploys it; there is no build step.
 
 ## Coverage
 
-All 21 Hokkaido resorts have data. The 19 still empty are all on Honshu.
-**Actions → Update snowfall data → Run workflow** pulls them and commits the
-result; after that it runs itself every Monday from October through May.
+All 40 resorts have season records — 21 in Hokkaido, 19 on Honshu. The trip
+planner and trends pages additionally need the daily cache, which is filled
+per station by `daily`. The weekly workflow keeps both current.
 
 If the workflow can't push, check **Settings → Actions → General → Workflow
 permissions** is set to *Read and write*.
@@ -42,10 +42,11 @@ Pass resort names to either command to do a subset.
 | | |
 |---|---|
 | `resorts.json` | The resort registry — name, country, area, source, station. Source of truth. |
-| `index.html` | Per-resort records. Generated — edit `template.html` instead. |
-| `plan.html` | Multi-resort trip planner. Generated — edit `plan-template.html` instead. |
-| `template.html`, `plan-template.html` | Markup for the two pages. `/*__DATA__*/null`, `/*__GROUPS__*/null` and `/*__TOTAL__*/0` are where the data lands. |
-| `site.css` | Shared styling. Page-specific rules stay inline in each template. |
+| `index.html` | Per-resort records. Generated — edit `template.html`. |
+| `plan.html` | Multi-resort trip planner. Generated — edit `plan-template.html`. |
+| `trends.html` | Season-by-season change per resort. Generated — edit `trends-template.html`. |
+| `*-template.html` | Markup for the three pages. `/*__DATA__*/null`, `/*__GROUPS__*/null` and `/*__TOTAL__*/0` are where the data lands. |
+| `site.css`, `site.js` | Shared styling and shared behaviour — picker, date controls, stats, daily cache. Each page defines its own `renderPage()`. |
 | `jma_snowfall.py` | The Japan adapter: `discover`, `fetch`, `verify`, `daily`, `build`. Reads `resorts.json`. |
 | `data/*.csv` | One file per resort, one row per season. Generated. |
 | `data/daily/*.json` | Daily new snow and snow depth, one file per station. Generated, cached. |

@@ -63,6 +63,7 @@ tr:hover .bar{background:var(--s3)}
 <nav class="pages" aria-label="Pages">
   <a href="index.html" aria-current="page">Records</a>
   <a href="plan.html">Trip planner</a>
+  <a href="trends.html">Trends</a>
 </nav>
 
 <div id="gap" class="warn" hidden></div>
@@ -132,25 +133,40 @@ function boot(){
   }
   const nav = el("picker");
   const multiCountry = Object.keys(GROUPS).length > 1;
+  let firstArea = true;
   for(const country in GROUPS){
     for(const area in GROUPS[country]){
       const ks = GROUPS[country][area].filter(k => have.includes(k));
       if(!ks.length) continue;
       const g = document.createElement("div");
       g.className = "pgroup";
-      g.innerHTML = "<h2>" + (multiCountry ? country + " \u00b7 " : "") + area + "</h2>";
+      const open = firstArea;
+      firstArea = false;
+      const head = document.createElement("button");
+      head.type = "button";
+      head.className = "pghead";
+      head.setAttribute("aria-expanded", open);
+      head.innerHTML = `<span class="caret">\u25B6</span>`
+        + `<span>${multiCountry ? country + " \u00b7 " : ""}${area}</span>`
+        + `<span class="n">${ks.length}</span><span class="rule"></span>`;
+      head.onclick = () =>
+        head.setAttribute("aria-expanded", head.getAttribute("aria-expanded") !== "true");
+      const body = document.createElement("div");
+      body.className = "pgbody";
       ks.forEach(k => {
         const b = document.createElement("button");
         b.textContent = nameOf(k); b.dataset.k = k;
         b.setAttribute("aria-pressed","false");
         b.onclick = () => select(k);
-        g.appendChild(b);
+        body.appendChild(b);
       });
+      g.append(head, body);
       nav.appendChild(g);
     }
   }
   buildLegend();
-  const first = nav.querySelector("button");
+  // .pgbody scopes this to resort buttons; the area headers are buttons too.
+  const first = nav.querySelector(".pgbody button");
   select(first ? first.dataset.k : have[0]);
 }
 
@@ -182,7 +198,9 @@ function render(){
     (d.base ? " · lifts run " + d.base + "–" + d.top + "m" : "") +
     (gap != null ? " · <b>" + gap.toLocaleString() + "m below the summit</b>" : "") +
     " · " + rows.length + " seasons, " + rows[0].s + " to " +
-    rows[rows.length-1].s + ".";
+    rows[rows.length-1].s + "." +
+    (d.shares ? " <b>The same station also stands in for " + d.shares.join(" and ") +
+      "</b>, so those read identically." : "");
 
   // Seasons with a month missing from the JMA record would otherwise show up
   // as the leanest winter on file. Keep them in the matrix, out of the stats.
