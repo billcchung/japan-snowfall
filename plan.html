@@ -15,12 +15,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css">
 <style>
-/* ---------- series colours, in pick order ---------- */
-:root{
-  --c0:#4A6FC4; --c1:#B4348C; --c2:#3FA7A0; --c3:#8257BE;
-  --c4:#D91A6B; --c5:#6FBF8B; --c6:#E0A33A; --c7:#24659B;
-}
-
 /* ---------- multi-select picker ---------- */
 .picker button::before{
   content:"";display:inline-block;width:7px;height:7px;margin-right:7px;
@@ -91,6 +85,8 @@ table.cmp tr.top td.big{color:#fff;font-weight:600}
 .chart .bandfill{mix-blend-mode:screen}
 .chart .bandedge{fill:none;stroke-width:1}
 .chart .now{fill:none;stroke:var(--ice);stroke-width:1.5}
+.chart .win{fill:var(--ice);opacity:.09}
+.chart .winedge{fill:none;stroke:var(--ice);stroke-width:1;opacity:.45}
 .chart .dot{stroke:none}
 .chart .guide{stroke:var(--edge2);stroke-width:1}
 .chart .hit{stroke:var(--void);stroke-width:1.5}
@@ -120,7 +116,9 @@ table.cmp tr.top td.big{color:#fff;font-weight:600}
 .key button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 
 table.cmp tr.off td{opacity:.4}
-.keybar{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:12px}
+.keybar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:12px}
+/* The key can be long; give it its own row so the controls never interleave. */
+.keybar .key{flex:1 0 100%;margin:0}
 .keybar .toggle{
   background:none;border:1px solid var(--edge2);border-radius:2px;padding:5px 10px;
   cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.11em;
@@ -134,12 +132,11 @@ table.cmp tr.off td{opacity:.4}
 <div class="wrap">
 
 <header>
-  <p class="kicker">Historical daily records · not a forecast</p>
   <h1>When should you go
     <span class="ja">降雪の深さ日合計 — 期間別</span></h1>
   <p class="lede">Pick the resorts you're weighing up and the dates you can travel. Every
-  figure is what those exact days actually delivered at the nearest official weather
-  station, season after season.</p>
+  figure is what those days actually delivered at the nearest official weather station,
+  season after season — history, not a forecast.</p>
 </header>
 
 <nav class="pages" aria-label="Pages">
@@ -183,12 +180,6 @@ table.cmp tr.off td{opacity:.4}
 </section>
 
 <section>
-  <h2>How they compare</h2>
-  <p class="hint" id="cmphint"></p>
-  <div class="tablewrap"><table class="cmp" id="cmp"><thead></thead><tbody></tbody></table></div>
-</section>
-
-<section>
   <h2>When to go</h2>
   <p class="hint" id="scanhint"></p>
   <div class="chart" id="scan"></div>
@@ -201,7 +192,19 @@ table.cmp tr.off td{opacity:.4}
 </section>
 
 <section>
+  <h2>How they compare</h2>
+  <p class="hint" id="cmphint"></p>
+  <div class="tablewrap"><table class="cmp" id="cmp"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<section>
   <h2>Year by year</h2>
+  <div class="keybar" style="margin:0 0 14px">
+    <span class="since" style="font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+      text-transform:uppercase;color:var(--dim)">Show as
+      <select id="yoyunit" aria-label="Units for the year-by-year chart"></select>
+    </span>
+  </div>
   <p class="hint" id="yoyhint"></p>
   <div class="chart" id="yoy"></div>
 </section>
@@ -236,8 +239,15 @@ const fromOrd = o => { for(const m of MON) if(o < ORD[m]+MLEN[m]) return {m, d:o
 const isLeap = y => (y%4===0 && y%100!==0) || y%400===0;
 const dateLabel = (m,d) => d + " " + MNAME[m];
 const seasonLabel = y => y + "/" + String(y+1).slice(2);
-const NCOL = 8;
-const colourOf = i => "var(--c" + (i % NCOL) + ")";
+/* Hues spread evenly across however many resorts are picked, so no two ever
+   share a colour. Lightness and saturation alternate between neighbours,
+   which is what keeps a large selection readable once the wheel gets crowded
+   -- at 20 resorts adjacent hues are only 18 degrees apart. Starting at 205
+   keeps a single pick the familiar blue. */
+const colourOf = (i, n) => {
+  const hue = Math.round((i * 360 / Math.max(1, n) + 205) % 360);
+  return `hsl(${hue} ${i % 2 ? 62 : 72}% ${i % 2 ? 52 : 68}%)`;
+};
 
 const stdev = a => { const m = mean(a);
   return a.length < 2 ? 0 : Math.sqrt(a.reduce((s,v)=>s+(v-m)*(v-m),0)/(a.length-1)); };
@@ -245,6 +255,7 @@ const stdev = a => { const m = mean(a);
 let picked = [];
 let hidden = new Set();   // toggled from the chart key, not the resort picker
 let showBands = true;
+let yoyUnit = "week";   // a rate makes windows of different lengths comparable
 let sel = {m1:12, d1:25, m2:1, d2:5};
 let since = 20;
 const cache = {};        // station file id -> {seasonYear: {snow, depth}}
@@ -365,8 +376,9 @@ function paintPicker(){
   el("picker").querySelectorAll("button").forEach(b => {
     const i = picked.indexOf(b.dataset.k);
     b.setAttribute("aria-pressed", i > -1);
-    b.style.setProperty("--swatch", i > -1 ? colourOf(i) : "");
-    b.style.color = i > -1 ? colourOf(i) : "";
+    const c = i > -1 ? colourOf(i, picked.length) : "";
+    b.style.setProperty("--swatch", c);
+    b.style.color = c;
   });
   el("count").textContent = picked.length
     ? picked.length + " selected" : "none selected";
@@ -406,6 +418,21 @@ function buildDateControls(){
   });
   fillDays("d1", sel.m1, sel.d1);
   fillDays("d2", sel.m2, sel.d2);
+  const yu = el("yoyunit");
+  [["week","centimetres per week"],["month","centimetres per 30 days"],
+   ["total","total over the window"]].forEach(([v,label]) => {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = label;
+    yu.appendChild(o);
+  });
+  yu.value = yoyUnit;
+  yu.onchange = () => { yoyUnit = yu.value; refresh(); };
+  // A reload can restore a previously chosen option after this runs; adopt
+  // whatever the control actually shows rather than letting the two disagree.
+  requestAnimationFrame(() => {
+    if(yu.value !== yoyUnit){ yoyUnit = yu.value; refresh(); }
+  });
+
   const ss = el("since");
   [10,15,20,25,30,0].forEach(n => {
     const o = document.createElement("option");
@@ -483,7 +510,14 @@ function svgScan(series, a, L, scaleFrom){
     if(pk) body += `<circle class="dot" fill="${s.colour}" cx="${X(pk.start).toFixed(1)}" `
       + `cy="${Y(pk.mean).toFixed(1)}" r="3.5"/>`;
   });
-  body += `<line class="now" x1="${X(a).toFixed(1)}" y1="${P.t}" x2="${X(a).toFixed(1)}" y2="${P.t+ih}"/>`;
+  // Mark the whole trip, not just the day it starts -- the x-axis is start
+  // date, so the chosen window spans a to a+L-1.
+  const wx1 = X(a), wx2 = X(Math.min(NDAYS-1, a + L - 1));
+  body += `<rect class="win" x="${wx1.toFixed(1)}" y="${P.t}" `
+    + `width="${Math.max(1.5, wx2-wx1).toFixed(1)}" height="${ih}"/>`
+    + `<line class="winedge" x1="${wx1.toFixed(1)}" y1="${P.t}" x2="${wx1.toFixed(1)}" y2="${P.t+ih}"/>`
+    + `<line class="winedge" x1="${wx2.toFixed(1)}" y1="${P.t}" x2="${wx2.toFixed(1)}" y2="${P.t+ih}"/>`
+    + `<line class="now" x1="${wx1.toFixed(1)}" y1="${P.t}" x2="${wx1.toFixed(1)}" y2="${P.t+ih}"/>`;
   body += `<line class="guide" x1="0" y1="${P.t}" x2="0" y2="${P.t+ih}" opacity="0"/>`;
   series.forEach(s => { body += `<circle class="hit" r="3.5" fill="${s.colour}" opacity="0"/>`; });
 
@@ -508,13 +542,19 @@ function svgScan(series, a, L, scaleFrom){
   return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date, with the range each resort delivers">${body}</svg>`, model};
 }
 
-function svgYoY(series, scaleFrom){
-  const W=760, H=210, P={l:46,r:14,t:14,b:28};
+function svgYoY(series, scaleFrom, L){
+  const W=760, H=222, P={l:52,r:14,t:28,b:28};
   const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  // A window total is not comparable between a 5-day trip and a 3-week one,
+  // so default to a rate. The shape is identical either way; only the units
+  // and the axis change.
+  const per = yoyUnit === "week" ? 7 / L : yoyUnit === "month" ? 30 / L : 1;
+  const unit = yoyUnit === "week" ? "cm/week" : yoyUnit === "month" ? "cm/30d" : "cm";
+  const val = r => r.total * per;
   const scale = (scaleFrom && scaleFrom.length) ? scaleFrom : series;
-  const years = [...new Set(scale.flatMap(s => s.allRows.map(r => r.y)))].sort((a,b)=>a-b);
+  const years = [...new Set(scale.flatMap(s => s.rows.map(r => r.y)))].sort((a,b)=>a-b);
   if(!years.length) return {svg:"", model:null};
-  const maxv = Math.max(1, ...scale.flatMap(s => s.allRows.map(r => r.total)));
+  const maxv = Math.max(1, ...scale.flatMap(s => s.rows.map(val)));
   const span = Math.max(1, years[years.length-1]-years[0]);
   const X = y => P.l + ((y - years[0])/span)*iw;
   const Y = v => P.t + ih - (v/maxv)*ih;
@@ -522,34 +562,36 @@ function svgYoY(series, scaleFrom){
   [0,0.5,1].forEach(f => { const v=maxv*f, y=P.t+ih-(f*ih);
     g += `<line class="grid" x1="${P.l}" y1="${y.toFixed(1)}" x2="${P.l+iw}" y2="${y.toFixed(1)}"/>`
        + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
+  g += `<text class="axis" x="${P.l-6}" y="${(P.t-12).toFixed(0)}" text-anchor="end">${unit}</text>`;
   const every = Math.max(1, Math.round(years.length/8));
   years.forEach((y,i) => { if(i % every === 0 || i === years.length-1)
     g += `<text class="axis" x="${X(y).toFixed(1)}" y="${H-9}" text-anchor="middle">${String(y).slice(2)}</text>`; });
   series.forEach(s => {
     g += `<polyline class="ln" stroke="${s.colour}" style="opacity:.75" points="`
-      + s.allRows.map(r=>X(r.y).toFixed(1)+","+Y(r.total).toFixed(1)).join(" ") + `"/>`;
-    const n=s.allRows.length;
-    const sx=s.allRows.reduce((t,_,i)=>t+i,0), sy=s.allRows.reduce((t,r)=>t+r.total,0);
-    const sxx=s.allRows.reduce((t,_,i)=>t+i*i,0), sxy=s.allRows.reduce((t,r,i)=>t+i*r.total,0);
+      + s.rows.map(r=>X(r.y).toFixed(1)+","+Y(val(r)).toFixed(1)).join(" ") + `"/>`;
+    const n=s.rows.length;
+    const sx=s.rows.reduce((t,_,i)=>t+i,0), sy=s.rows.reduce((t,r)=>t+val(r),0);
+    const sxx=s.rows.reduce((t,_,i)=>t+i*i,0), sxy=s.rows.reduce((t,r,i)=>t+i*val(r),0);
     const den=n*sxx-sx*sx, slope=den?(n*sxy-sx*sy)/den:0, icpt=(sy-slope*sx)/n;
     g += `<line class="ln" stroke="${s.colour}" stroke-dasharray="5 4" stroke-width="1.5" `
-      + `x1="${X(s.allRows[0].y).toFixed(1)}" y1="${Y(Math.max(0,icpt)).toFixed(1)}" `
-      + `x2="${X(s.allRows[n-1].y).toFixed(1)}" y2="${Y(Math.max(0,icpt+slope*(n-1))).toFixed(1)}"/>`;
+      + `x1="${X(s.rows[0].y).toFixed(1)}" y1="${Y(Math.max(0,icpt)).toFixed(1)}" `
+      + `x2="${X(s.rows[n-1].y).toFixed(1)}" y2="${Y(Math.max(0,icpt+slope*(n-1))).toFixed(1)}"/>`;
   });
   g += `<line class="guide" x1="0" y1="${P.t}" x2="0" y2="${P.t+ih}" opacity="0"/>`;
   series.forEach(s => { g += `<circle class="hit" r="3.5" fill="${s.colour}" opacity="0"/>`; });
 
   const byYear = series.map(s => { const m = new Map();
-    s.allRows.forEach(r => m.set(r.y, r)); return m; });
+    s.rows.forEach(r => m.set(r.y, r)); return m; });
   const model = {W, Y, at(xv){
     let yv = Math.round(years[0] + (xv - P.l)/iw*span);
     yv = Math.max(years[0], Math.min(years[years.length-1], yv));
     const rows = [];
     series.forEach((ser,i) => {
       const r = byYear[i].get(yv);
-      if(r) rows.push({name:ser.name, colour:ser.colour, y:Y(r.total),
-                       value:Math.round(r.total)+"cm",
-                       extra:r.powder + (r.powder===1?" powder day":" powder days")});
+      if(r) rows.push({name:ser.name, colour:ser.colour, y:Y(val(r)),
+                       value: Math.round(val(r)) + unit.replace("cm",""),
+                       extra: Math.round(r.total) + "cm over the window · "
+                              + r.powder + (r.powder===1?" powder day":" powder days")});
     });
     if(!rows.length) return null;
     return {x:X(yv), label:"Season "+seasonLabel(yv), rows};
@@ -629,11 +671,9 @@ async function refresh(){
     const rows = [];
     years.forEach(y => { const w = windowStats(seasons,y,a,b); if(w) rows.push({y, ...w}); });
     if(rows.length < 3) return;
-    const allRows = [];
-    all.forEach(y => { const w = windowStats(seasons,y,a,b); if(w) allRows.push({y, ...w}); });
     series.push({
-      k, name:nameOf(k), area:DATA[k].area, colour:colourOf(i),
-      rows, allRows, curve:scanCurve(seasons, L, years),
+      k, name:nameOf(k), area:DATA[k].area, colour:colourOf(i, picked.length),
+      rows, curve:scanCurve(seasons, L, years),
       totals:rows.map(r=>r.total)
     });
   });
@@ -733,24 +773,29 @@ async function refresh(){
     + `on each date; the dot is that resort's best window and the white line is your start `
     + `date. The shaded band around each line runs from the 10th to the 90th percentile — `
     + `a fat band means that window is a lottery, a tight one means it turns up reliably. `
-    + `Hover the chart for exact figures.`
+    + `Your chosen dates are the shaded block. Hover the chart for exact figures.`
     + (vis.length > 1
         ? ` Over your dates <b>${steadiest.name}</b> is the most dependable, swinging `
           + `${Math.round(steadiest.cv)}% of a typical season, against `
           + `${Math.round(swingiest.cv)}% for <b>${swingiest.name}</b>.`
         : "");
 
-  const yseries = vis.filter(s => s.allRows.length >= 5);
-  const yscale = series.filter(s => s.allRows.length >= 5);
+  const yseries = vis.filter(s => s.rows.length >= 5);
+  const yscale = series.filter(s => s.rows.length >= 5);
   if(yscale.length){
-    const yoy = svgYoY(yseries, yscale);
+    const yoy = svgYoY(yseries, yscale, L);
     el("yoy").innerHTML = yoy.svg;
     attachHover(el("yoy"), yoy.model);
     el("yoyhint").innerHTML = allOff
       ? `Every resort is hidden. Use Show all, or click a name in the key.`
-      : `Your dates in every season on record. The solid line is each season's total — `
-        + `its jaggedness is the year-to-year variability — and the dashed line is that `
-        + `resort's linear trend. Hover for a season's exact total.`;
+      : `Your dates across ${since ? "the last " + since + " seasons" : "every season on record"}`
+        + `, the same span the figures above use. `
+        + (yoyUnit === "total"
+            ? `The solid line is each season's total for the window. `
+            : `The solid line is each season's snowfall as a rate, so windows of different `
+              + `lengths stay comparable. `)
+        + `Its jaggedness is the year-to-year variability; the dashed line is that resort's `
+        + `linear trend. Hover for a season's exact figures.`;
   }else{ el("yoy").innerHTML = ""; el("yoyhint").textContent = ""; }
 }
 

@@ -15,17 +15,18 @@ body{
 .wrap{max-width:1180px;margin:0 auto;padding:0 20px 80px}
 
 /* ---------- header ---------- */
-header{border-bottom:1px solid var(--edge);padding:38px 0 22px;margin-bottom:34px}
+header{border-bottom:1px solid var(--edge);padding:22px 0 16px;margin-bottom:22px}
 .kicker{
   font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--mute);margin:0 0 14px
+  color:var(--mute);margin:0 0 10px
 }
 h1{
-  font-weight:900;font-size:clamp(30px,5.2vw,54px);line-height:1.04;margin:0;
-  letter-spacing:-.02em
+  font-weight:800;font-size:clamp(24px,3.2vw,34px);line-height:1.1;margin:0;
+  letter-spacing:-.015em
 }
-h1 .ja{display:block;font-size:.44em;font-weight:500;color:var(--mute);letter-spacing:.02em;margin-top:10px}
-.lede{max-width:62ch;color:var(--mute);font-size:15px;margin:18px 0 0}
+h1 .ja{display:inline;font-size:.5em;font-weight:500;color:var(--mute);
+  letter-spacing:.02em;margin-left:12px;white-space:nowrap}
+.lede{max-width:70ch;color:var(--mute);font-size:14px;margin:10px 0 0}
 .lede b{color:var(--ice);font-weight:500}
 
 /* ---------- resort picker ---------- */
