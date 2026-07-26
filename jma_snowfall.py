@@ -6,10 +6,15 @@ Meteorological Agency and write one CSV of Nov-Apr ski seasons per resort.
 Stdlib only. Run from anywhere with access to data.jma.go.jp.
 
     python3 jma_snowfall.py discover      # build station_index.json
-    python3 jma_snowfall.py fetch         # pull every resort in RESORTS
+    python3 jma_snowfall.py fetch         # season totals for every resort
     python3 jma_snowfall.py fetch niseko hakuba
-    python3 jma_snowfall.py build         # regenerate index.html
     python3 jma_snowfall.py verify        # Kutchan vs the transcribed table
+    python3 jma_snowfall.py daily         # daily snow and depth, incremental
+    python3 jma_snowfall.py build         # regenerate index.html and plan.html
+
+Resorts live in resorts.json, not in this file. This module handles the ones
+whose source is "jma"; another country means another fetcher writing the same
+CSV and data/daily/ shapes.
 
 Notes on the source data
 ------------------------
@@ -130,10 +135,15 @@ def _args(blob):
     return [a.strip().strip("'\"") for a in blob.split(",")]
 
 
-def _elevation(args):
-    """JMA passes lat_deg, lat_min, lon_deg, lon_min, elevation after the
-    region code. Elevation is the first plausible altitude after the
-    longitude minutes; return None rather than guess if the shape differs."""
+def _shape(args):
+    """Locate elevation, and the snow flag that follows it.
+
+    viewPoint(kind, block, name, kana, lat_d, lat_m, lon_d, lon_m, elev,
+              f_pre, f_wsp, f_tem, f_sun, f_snc, f_hum, ...) -- so once the
+    elevation is located, f_snc is five positions further on. Plenty of
+    stations report wind and temperature but no snow at all; knowing that up
+    front turns a mystifying empty-table failure into a checkable fact.
+    """
     nums = []
     for a in args[4:]:
         try:
@@ -145,8 +155,19 @@ def _elevation(args):
         if None in (lat_d, lat_m, lon_d, lon_m, elev):
             continue
         if 24 <= lat_d <= 46 and 122 <= lon_d <= 154 and -5 <= elev <= 3800:
-            return elev
-    return None
+            # f_snc sits five positions past the elevation, whichever offset
+            # the elevation was found at.
+            #
+            # Trust it for AMeDAS, where it is discriminating and catches a
+            # station that reports wind and temperature but no snow. It says
+            # nothing useful about surface stations: JMA flags all 112 of them
+            # as snow-capable, 南鳥島 in the subtropical Pacific included. Read
+            # it rather than assert it, but do not expect it to catch a bad
+            # surface-station pick -- only an empty table will.
+            at = 4 + i + 4 + 5
+            snow = args[at] == "1" if at < len(args) else None
+            return elev, snow
+    return None, None
 
 
 def discover():
@@ -163,10 +184,11 @@ def discover():
             a = _args(blob)
             if len(a) < 4 or a[0] not in ("s", "a") or not a[1].isdigit():
                 continue
+            elev, snow = _shape(a)
             index[f"{prec}:{a[2]}"] = {
                 "prec_no": prec, "region": label, "block_no": a[1],
                 "kind": a[0], "name_ja": a[2], "kana": a[3],
-                "elevation_m": _elevation(a),
+                "elevation_m": elev, "snow": snow,
             }
             found += 1
         if not found:
@@ -175,7 +197,7 @@ def discover():
                 index[f"{prec}:block{block}"] = {
                     "prec_no": prec, "region": label, "block_no": block,
                     "kind": "s" if len(block) == 5 else "a",
-                    "name_ja": "", "kana": "", "elevation_m": None,
+                    "name_ja": "", "kana": "", "elevation_m": None, "snow": None,
                 }
                 found += 1
             if found:
@@ -483,7 +505,14 @@ def fetch(names):
             near = [k for k in index if k.startswith(f"{prec}:")][:8]
             sys.stderr.write(f"{who}: {station_ja} not in prec {prec}. "
                              f"Nearby keys: {near}\n")
-            unresolved.append(f"{who} ({station_ja}, prec {prec})")
+            unresolved.append(f"{who}: {station_ja} not found in prec {prec}")
+            continue
+        # `is False` on purpose: None means discovery fell back to bare block
+        # numbers and never learned the station's elements, which is not the
+        # same as knowing it records nothing.
+        if st.get("snow") is False:
+            sys.stderr.write(f"{who}: {station_ja} does not measure snow\n")
+            unresolved.append(f"{who}: {station_ja} (prec {prec}) records no snow")
             continue
         try:
             monthly, url = monthly_table(st["prec_no"], st["block_no"], st["kind"])
@@ -510,9 +539,10 @@ def fetch(names):
                   f"last-25 avg {avg:>5}cm")
         time.sleep(1.5)
 
-    # A station name that is not in the index is a typo in resorts.json, not a
-    # transient failure -- it silently drops the resort from every page, so
-    # fail loudly rather than letting a green workflow hide it.
+    # A station that is missing from the index, or that records no snow, is a
+    # mistake in resorts.json rather than a transient failure -- and it
+    # silently drops the resort from every page. Fail loudly rather than
+    # letting a green workflow hide it.
     if unresolved:
         sys.exit("\nunresolved stations (fix resorts.json):\n  "
                  + "\n  ".join(unresolved))

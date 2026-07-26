@@ -11,11 +11,11 @@ build tooling, no dependencies, one Python script.
 Served by GitHub Pages from `main` at the repo root. Pushing to `main`
 redeploys it; there is no build step.
 
-## Fill in the other 19 resorts
+## Coverage
 
-All ten Hokkaido resorts have data committed. The Honshu resorts do not.
-**Actions → Update snowfall data → Run workflow** pulls everything and commits
-the result; after that it runs itself every Monday from October through May.
+All 21 Hokkaido resorts have data. The 19 still empty are all on Honshu.
+**Actions → Update snowfall data → Run workflow** pulls them and commits the
+result; after that it runs itself every Monday from October through May.
 
 If the workflow can't push, check **Settings → Actions → General → Workflow
 permissions** is set to *Read and write*.

@@ -30,7 +30,7 @@
    "name_ja": "喜茂別",
    "prec_no": 16
   },
-  "note": "Kimobetsu 130m; Rusutsu base ~400m"
+  "note": "Kimobetsu 264m; Rusutsu base ~400m"
  },
  "kiroro": {
   "name": "Kiroro",
@@ -41,7 +41,7 @@
    "name_ja": "赤井川",
    "prec_no": 16
   },
-  "note": "Akaigawa 220m; Kiroro base 570m, top 1180m"
+  "note": "Akaigawa 148m; Kiroro base 570m, top 1180m"
  },
  "sapporo": {
   "name": "Sapporo",
@@ -52,7 +52,7 @@
    "name_ja": "札幌",
    "prec_no": 14
   },
-  "note": "Sapporo 17m; Teine and Kokusai sit far above the city"
+  "note": "Sapporo 17m; Teine sits far above the city"
  },
  "furano": {
   "name": "Furano",
@@ -74,7 +74,7 @@
    "name_ja": "占冠",
    "prec_no": 12
   },
-  "note": "Shimukappu 250m; Tomamu base 545m"
+  "note": "Shimukappu 332m; Tomamu base 545m"
  },
  "asahidake": {
   "name": "Asahidake",
@@ -109,6 +109,127 @@
   },
   "note": "Asahikawa 120m; Kamui Ski Links base 250m"
  },
+ "kokusai": {
+  "name": "Sapporo Kokusai",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "小金湯",
+   "prec_no": 14
+  },
+  "note": "Koganeyu 230m, in the Jozankei valley; resort elevations not yet filled in"
+ },
+ "otaru": {
+  "name": "Otaru",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "小樽",
+   "prec_no": 16
+  },
+  "note": "小樽 station at 25m; resort elevations not yet filled in"
+ },
+ "nayoro": {
+  "name": "Nayoro Piyashiri",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "名寄",
+   "prec_no": 12
+  },
+  "note": "名寄 station at 89m; resort elevations not yet filled in"
+ },
+ "shimokawa": {
+  "name": "Shimokawa",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "下川",
+   "prec_no": 12
+  },
+  "note": "下川 station at 143m; resort elevations not yet filled in"
+ },
+ "sounkyo": {
+  "name": "Sounkyo Kurodake",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "層雲峡",
+   "prec_no": 12
+  },
+  "note": "層雲峡 station at 540m; on site at the Kurodake ropeway base"
+ },
+ "tokachi-dake": {
+  "name": "Tokachidake",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "美瑛",
+   "prec_no": 12
+  },
+  "note": "美瑛 station at 250m; nearest snow-recording station; the resort sits well above"
+ },
+ "racey": {
+  "name": "Mt. Racey",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "夕張",
+   "prec_no": 15
+  },
+  "note": "夕張 station at 293m; resort elevations not yet filled in"
+ },
+ "engaru": {
+  "name": "Engaru Rock Valley",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "遠軽",
+   "prec_no": 17
+  },
+  "note": "遠軽 station at 80m; resort elevations not yet filled in"
+ },
+ "kitami": {
+  "name": "Kitami Onneyu",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "北見",
+   "prec_no": 17
+  },
+  "note": "北見 station at 104m; resort elevations not yet filled in"
+ },
+ "akan": {
+  "name": "Akan",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "阿寒湖畔",
+   "prec_no": 19
+  },
+  "note": "阿寒湖畔 station at 426m; resort elevations not yet filled in"
+ },
+ "nukabira": {
+  "name": "Nukabira",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "ぬかびら源泉郷",
+   "prec_no": 20
+  },
+  "note": "ぬかびら源泉郷 station at 540m; on site at the resort"
+ },
  "hakkoda": {
   "name": "Hakkoda",
   "country": "Japan",
@@ -126,10 +247,10 @@
   "area": "Tohoku",
   "source": "jma",
   "station": {
-   "name_ja": "荒屋",
+   "name_ja": "岩手松尾",
    "prec_no": 33
   },
-  "note": "Araya 320m; Appi base 500m"
+  "note": "Iwate-Matsuo 275m, at the foot of Hachimantai; Appi base 500m"
  },
  "geto": {
   "name": "Geto",
@@ -140,7 +261,7 @@
    "name_ja": "湯田",
    "prec_no": 33
   },
-  "note": "Yuda 235m; Geto Kogen base 430m"
+  "note": "Yuda 250m; Geto Kogen base 430m"
  },
  "zao": {
   "name": "Zao",
@@ -162,7 +283,7 @@
    "name_ja": "阿仁合",
    "prec_no": 32
   },
-  "note": "Aniai 90m; Ani base 200m"
+  "note": "Aniai 120m; Ani base 200m"
  },
  "aomori-spring": {
   "name": "Aomori Spring",
@@ -250,7 +371,7 @@
    "name_ja": "小谷",
    "prec_no": 48
   },
-  "note": "Otari 520m; Tsugaike and Cortina bases 800-900m"
+  "note": "Otari 550m; Tsugaike and Cortina bases 800-900m"
  },
  "shiga-kogen": {
   "name": "Shiga Kogen",
@@ -272,7 +393,7 @@
    "name_ja": "湯沢",
    "prec_no": 54
   },
-  "note": "Yuzawa 240m; Gala/Ishiuchi/Naeba/Kagura all draw from here"
+  "note": "Yuzawa 340m; Gala/Ishiuchi/Naeba/Kagura all draw from here"
  },
  "itoigawa": {
   "name": "Charmant Hiuchi",
@@ -280,10 +401,10 @@
   "area": "Niigata & Nagano",
   "source": "jma",
   "station": {
-   "name_ja": "糸魚川",
+   "name_ja": "能生",
    "prec_no": 54
   },
-  "note": "Itoigawa 3m; Charmant Hiuchi base 400m"
+  "note": "Nou 55m on the coast; Charmant Hiuchi base 400m — large gap"
  },
  "minakami": {
   "name": "Minakami",
@@ -316,6 +437,6 @@
    "name_ja": "長滝",
    "prec_no": 52
   },
-  "note": "Nagataki 470m; Takasu and Dynaland bases 900m+"
+  "note": "Nagataki 430m; Takasu and Dynaland bases 900m+"
  }
 }

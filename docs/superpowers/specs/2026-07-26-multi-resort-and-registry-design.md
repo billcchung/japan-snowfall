@@ -92,3 +92,50 @@ SVG `rect` takes `height` as a CSS property, so the existing `.bar` rule
 (`height:7px`, for the matrix total bars) silently flattened chart columns
 until they were renamed `.col`. Watch for class-name collisions between HTML
 and inline SVG.
+
+## Follow-up: Hokkaido coverage, and two fixes
+
+**Hide all left an empty div.** The charts were being cleared entirely, which
+removed the axes and the scale along with the series. They now render the frame
+— gridlines, month ticks, the chosen-start marker — with no series drawn, and
+scale from every picked resort rather than only the visible ones, so toggling a
+resort off no longer makes the remaining lines jump to a new axis.
+
+**Eleven more Hokkaido areas**, taking it from 10 to 21 across 20 distinct
+stations: Sapporo Kokusai, Otaru, Nayoro Piyashiri, Shimokawa, Sounkyo
+Kurodake, Tokachidake, Mt. Racey, Engaru Rock Valley, Kitami Onneyu, Akan and
+Nukabira.
+
+Candidates that would only have duplicated an existing station were dropped:
+Sapporo Teine reads from 札幌 like Sapporo already does, and Niseko Moiwa from
+蘭越 like Niseko west. Pippu and Shikaoi were dropped for the same reason once
+their own stations turned out to record no snow — the only snow-recording
+alternatives were 旭川 and 新得, already standing in for Kamui and Sahoro.
+
+Sapporo's entry no longer claims to cover Kokusai, which is now its own resort
+on 小金湯; leaving it would have counted the same ski area twice.
+
+Resort base and summit elevations are left null for the new entries rather than
+recalled from memory. The station elevation and the JMA series are measured
+facts; resort-published elevations are not, and the pages already degrade
+cleanly without them.
+
+**Station capability is now recorded.** `支笏湖畔`, the first choice for Sapporo
+Kokusai, turned out to measure no snow at all — which surfaced only as an empty
+table halfway through a fetch, as did 比布, 上富良野 and 鹿追. JMA's `viewPoint` markup carries a snow flag next
+to the elevation, so `discover` now stores it and `fetch` treats a station that
+records no snow the same as a station that does not exist: a registry error that
+exits non-zero, not a silent skip. Kokusai was repointed at `小金湯`, which does
+record snow and sits in the Jozankei valley. Two Honshu entries had the same
+latent fault — appi on 荒屋 and itoigawa on 糸魚川 — and were repointed at
+岩手松尾 and 能生 before the new check could turn a full fetch red.
+
+The flag is read from JMA's markup rather than assumed. A first version forced
+`snow = True` for every surface station on the theory that they report the full
+set — asserting a fact it had not measured. Reading it instead turns out to
+change nothing: JMA flags all 112 surface stations as snow-capable, 南鳥島 in
+the subtropical Pacific included. So the guard is real for AMeDAS, where the
+flag discriminates and where all four failures here occurred, and worth nothing
+for surface stations, where only an empty table will reveal a bad pick. Better
+to report the source faithfully and know the limit than to hide it behind an
+assumption.

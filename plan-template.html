@@ -438,10 +438,11 @@ function axes(W,H,P,maxv,Xof){
   return g;
 }
 
-function svgScan(series, a, L){
+function svgScan(series, a, L, scaleFrom){
   const W=760, H=250, P={l:46,r:14,t:14,b:28};
   const iw=W-P.l-P.r, ih=H-P.t-P.b;
-  const maxv = Math.max(1, ...series.flatMap(s => s.curve.map(c => showBands ? c.p90 : c.mean)));
+  const scale = (scaleFrom && scaleFrom.length) ? scaleFrom : series;
+  const maxv = Math.max(1, ...scale.flatMap(s => s.curve.map(c => showBands ? c.p90 : c.mean)));
   // Thin the fills as more resorts stack up, so three reads rich and six
   // still reads at all.
   const bandOp = Math.max(0.08, 0.24 / Math.pow(Math.max(1,series.length), 0.45));
@@ -488,7 +489,7 @@ function svgScan(series, a, L){
 
   const byStart = series.map(s => { const m = new Map();
     s.curve.forEach(c => m.set(c.start, c)); return m; });
-  const allStarts = series.flatMap(s => s.curve.map(c => c.start));
+  const allStarts = scale.flatMap(s => s.curve.map(c => c.start));
   const lo = Math.min(...allStarts), hi = Math.max(...allStarts);
   const model = {W, Y, at(xv){
     let st = Math.round((xv - P.l)/iw*(NDAYS-1));
@@ -507,12 +508,13 @@ function svgScan(series, a, L){
   return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date, with the range each resort delivers">${body}</svg>`, model};
 }
 
-function svgYoY(series){
+function svgYoY(series, scaleFrom){
   const W=760, H=210, P={l:46,r:14,t:14,b:28};
   const iw=W-P.l-P.r, ih=H-P.t-P.b;
-  const years = [...new Set(series.flatMap(s => s.allRows.map(r => r.y)))].sort((a,b)=>a-b);
+  const scale = (scaleFrom && scaleFrom.length) ? scaleFrom : series;
+  const years = [...new Set(scale.flatMap(s => s.allRows.map(r => r.y)))].sort((a,b)=>a-b);
   if(!years.length) return {svg:"", model:null};
-  const maxv = Math.max(1, ...series.flatMap(s => s.allRows.map(r => r.total)));
+  const maxv = Math.max(1, ...scale.flatMap(s => s.allRows.map(r => r.total)));
   const span = Math.max(1, years[years.length-1]-years[0]);
   const X = y => P.l + ((y - years[0])/span)*iw;
   const Y = v => P.t + ih - (v/maxv)*ih;
@@ -705,8 +707,8 @@ async function refresh(){
   el("verdict").innerHTML = v;
 
   // ---- charts ----
-  // Rendered before the empty-state bail: without the key there is no way
-  // back from Hide all.
+  // Every picked resort appears in the key, hidden ones included -- it is the
+  // only way back from Hide all.
   el("key").innerHTML = series.map(s =>
     `<button type="button" data-k="${s.k}" aria-pressed="${!hidden.has(s.k)}">`
     + `<i style="background:${s.colour}"></i>${s.name}</button>`).join("");
@@ -718,19 +720,16 @@ async function refresh(){
     };
   });
 
-  if(!vis.length){
-    el("scan").innerHTML = ""; el("yoy").innerHTML = "";
-    el("scanhint").innerHTML = `<span class="nodaily">Every resort is hidden. `
-      + `Use Show all, or click a name in the key.</span>`;
-    el("yoyhint").textContent = "";
-    return;
-  }
-  const scan = svgScan(vis, a, L);
+  const scan = svgScan(vis, a, L, series);
   el("scan").innerHTML = scan.svg;
   attachHover(el("scan"), scan.model);
   const steadiest = [...vis].sort((x,y) => x.cv - y.cv)[0];
   const swingiest = [...vis].sort((x,y) => y.cv - x.cv)[0];
-  el("scanhint").innerHTML = `The solid line is average snowfall for a ${L}-day trip starting `
+  const allOff = !vis.length;
+  el("scanhint").innerHTML = allOff
+    ? `Every resort is hidden — the axes stay so you can see the scale. Use Show all, `
+      + `or click a name in the key to bring one back.`
+    : `The solid line is average snowfall for a ${L}-day trip starting `
     + `on each date; the dot is that resort's best window and the white line is your start `
     + `date. The shaded band around each line runs from the 10th to the 90th percentile — `
     + `a fat band means that window is a lottery, a tight one means it turns up reliably. `
@@ -742,13 +741,16 @@ async function refresh(){
         : "");
 
   const yseries = vis.filter(s => s.allRows.length >= 5);
-  if(yseries.length){
-    const yoy = svgYoY(yseries);
+  const yscale = series.filter(s => s.allRows.length >= 5);
+  if(yscale.length){
+    const yoy = svgYoY(yseries, yscale);
     el("yoy").innerHTML = yoy.svg;
     attachHover(el("yoy"), yoy.model);
-    el("yoyhint").innerHTML = `Your dates in every season on record. The solid line is each `
-      + `season's total — its jaggedness is the year-to-year variability — and the dashed `
-      + `line is that resort's linear trend. Hover for a season's exact total.`;
+    el("yoyhint").innerHTML = allOff
+      ? `Every resort is hidden. Use Show all, or click a name in the key.`
+      : `Your dates in every season on record. The solid line is each season's total — `
+        + `its jaggedness is the year-to-year variability — and the dashed line is that `
+        + `resort's linear trend. Hover for a season's exact total.`;
   }else{ el("yoy").innerHTML = ""; el("yoyhint").textContent = ""; }
 }
 
