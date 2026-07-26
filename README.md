@@ -41,9 +41,12 @@ Pass resort names to either command to do a subset.
 
 | | |
 |---|---|
-| `index.html` | The site. Generated — edit `template.html` instead. |
-| `template.html` | Markup and styling. `/*__DATA__*/null` is where the data lands. |
-| `jma_snowfall.py` | `discover`, `fetch`, `verify`, `daily`, `build`. Resort-to-station mapping at the top. |
+| `resorts.json` | The resort registry — name, country, area, source, station. Source of truth. |
+| `index.html` | Per-resort records. Generated — edit `template.html` instead. |
+| `plan.html` | Multi-resort trip planner. Generated — edit `plan-template.html` instead. |
+| `template.html`, `plan-template.html` | Markup for the two pages. `/*__DATA__*/null`, `/*__GROUPS__*/null` and `/*__TOTAL__*/0` are where the data lands. |
+| `site.css` | Shared styling. Page-specific rules stay inline in each template. |
+| `jma_snowfall.py` | The Japan adapter: `discover`, `fetch`, `verify`, `daily`, `build`. Reads `resorts.json`. |
 | `data/*.csv` | One file per resort, one row per season. Generated. |
 | `data/daily/*.json` | Daily new snow and snow depth, one file per station. Generated, cached. |
 | `reference.json` | Resort elevations and claimed annual snowfall. |
@@ -74,7 +77,7 @@ average. All exact.
 
 **Shiga Kogen** borrows Nozawa Onsen's station, 750 m lower and across the ridge.
 There is no station on the plateau. Treat it as a placeholder or drop it from
-`RESORTS`.
+`resorts.json`.
 
 **The two station kinds need different endpoints.** Surface stations publish
 `monthly_s3.php?view=p6`, every year of record in one table. AMeDAS stations
@@ -102,8 +105,19 @@ If a table ever parses to zero rows, check that first.
 that markup changes there's a fallback that scrapes bare block numbers, but it
 loses the station names, so `fetch` will then report stations missing.
 
-Adding a resort means adding one line to `RESORTS` with the station's exact
-Japanese name and its region code. Grep `station_index.json` after `discover` to
-find it.
+## Adding resorts, and other countries
+
+Adding a Japanese resort means one entry in `resorts.json` giving the station's
+exact Japanese name and its region code. Grep `station_index.json` after
+`discover` to find it. Registry order is display order.
+
+Adding a country means entries with a different `source`, plus a fetcher that
+writes the same per-resort CSV — `resort, station_ja, prec_no, block_no,
+season, nov…apr, season_total_cm, incomplete, note` — and, for the planner, a
+daily cache under `data/daily/` keyed `"YYYY-MM"` with `snow` and `depth`
+arrays. `jma_snowfall.py` only claims registry entries whose `source` is
+`jma`, so a second fetcher can sit alongside it without touching this one.
+`build` reads whatever is in `data/` and groups the picker by country and
+area, so a new country appears on both pages with no front-end change.
 
 Data attribution in [ATTRIBUTION.md](ATTRIBUTION.md).

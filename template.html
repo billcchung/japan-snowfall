@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Japan snowfall — JMA station records</title>
-<meta name="description" content="Historical snowfall for Japanese ski resorts, taken from Japan Meteorological Agency station records rather than resort marketing figures. Season totals, month-by-month breakdown, and a day-resolution trip planner showing what any date range historically delivered.">
+<meta name="description" content="Historical snowfall for Japanese ski resorts, taken from Japan Meteorological Agency station records rather than resort marketing figures. Season totals and a month-by-month breakdown for each resort, measured at the nearest official weather station.">
 <meta name="color-scheme" content="dark">
 <meta property="og:title" content="Japan snowfall — JMA station records">
 <meta property="og:description" content="What Japan's ski resorts actually get, measured by the JMA station nearest each one.">
@@ -13,83 +13,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
 <style>
-:root{
-  --void:#080C12; --panel:#11171F; --edge:#1E2833; --edge2:#2C3A49;
-  --ice:#E4EBF2; --mute:#7C8CA0; --dim:#4E5C6E;
-  --s0:#151D26; --s1:#1C3D5C; --s2:#24659B; --s3:#4A6FC4;
-  --s4:#8257BE; --s5:#B4348C; --s6:#D91A6B;
-  --sans:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-}
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{
-  background:var(--void); color:var(--ice); font-family:var(--sans);
-  font-weight:400; -webkit-font-smoothing:antialiased; line-height:1.5;
-}
-.wrap{max-width:1180px;margin:0 auto;padding:0 20px 80px}
-
-/* ---------- header ---------- */
-header{border-bottom:1px solid var(--edge);padding:38px 0 22px;margin-bottom:34px}
-.kicker{
-  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--mute);margin:0 0 14px
-}
-h1{
-  font-weight:900;font-size:clamp(30px,5.2vw,54px);line-height:1.04;margin:0;
-  letter-spacing:-.02em
-}
-h1 .ja{display:block;font-size:.44em;font-weight:500;color:var(--mute);letter-spacing:.02em;margin-top:10px}
-.lede{max-width:62ch;color:var(--mute);font-size:15px;margin:18px 0 0}
-.lede b{color:var(--ice);font-weight:500}
-
-/* ---------- resort picker ---------- */
-.picker{margin:26px 0 8px}
-.pgroup{display:flex;flex-wrap:wrap;gap:7px;align-items:baseline;margin-bottom:9px}
-.pgroup h2{
-  font-family:var(--mono);font-size:10px;font-weight:400;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--mute);opacity:.62;
-  flex:0 0 100%;margin:0 0 5px
-}
-.picker button{
-  font-family:var(--mono);font-size:12px;letter-spacing:.04em;
-  background:transparent;color:var(--mute);border:1px solid var(--edge);
-  padding:7px 12px;border-radius:2px;cursor:pointer;transition:.14s
-}
-.picker button:hover{border-color:var(--edge2);color:var(--ice)}
-.picker button[aria-pressed=true]{background:var(--ice);color:var(--void);border-color:var(--ice);font-weight:600}
-.picker button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
-tr.partial .sea abbr{border:0;text-decoration:none;color:var(--s3);cursor:help;padding-left:2px}
-
-.station{
-  font-family:var(--mono);font-size:12px;color:var(--dim);
-  border-left:2px solid var(--edge2);padding-left:12px;margin:22px 0 40px;max-width:70ch
-}
-.station b{color:var(--mute);font-weight:500}
-
-/* ---------- stat strip ---------- */
-.stats{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-  gap:1px;background:var(--edge);border:1px solid var(--edge);margin-bottom:46px
-}
-.stat{background:var(--panel);padding:16px 18px}
-.stat dt{
-  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--dim);margin:0 0 8px
-}
-.stat dd{margin:0;font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:-.02em}
-.stat dd small{font-size:12px;color:var(--mute);font-weight:400;margin-left:3px}
-.stat .sub{font-size:11px;color:var(--dim);font-family:var(--mono);margin-top:5px;letter-spacing:.02em}
-
-/* ---------- section ---------- */
-section{margin-bottom:56px}
-h2{
-  font-size:13px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
-  margin:0 0 6px;font-family:var(--mono)
-}
-.hint{color:var(--dim);font-size:13px;margin:0 0 20px;max-width:64ch}
-
 /* ---------- the matrix ---------- */
 .matrix{width:100%;overflow-x:auto}
 table{border-collapse:collapse;font-family:var(--mono);font-size:12px;width:100%;min-width:560px}
@@ -121,59 +46,6 @@ tr:hover .bar{background:var(--s3)}
 }
 .legend i{width:34px;height:9px;display:block}
 .legend span{padding:0 7px;letter-spacing:.08em}
-
-/* ---------- planner ---------- */
-.planner{background:var(--panel);border:1px solid var(--edge);padding:22px}
-.dates{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:baseline}
-.dates label,.dates .since{
-  font-family:var(--mono);font-size:10px;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--dim)
-}
-.dates select{
-  font-family:var(--mono);font-size:13px;letter-spacing:.02em;text-transform:none;
-  background:var(--void);color:var(--ice);border:1px solid var(--edge2);
-  padding:6px 8px;margin-left:5px;border-radius:2px;cursor:pointer
-}
-.dates select:focus-visible{outline:2px solid var(--s3);outline-offset:1px}
-.dates .len{font-family:var(--mono);font-size:12px;color:var(--mute)}
-.dates .len b{color:var(--ice);font-weight:600}
-.chart{margin:0 0 4px;overflow-x:auto}
-.chart svg{display:block;width:100%;min-width:520px;height:auto}
-.chart .axis{fill:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.08em}
-.chart .grid{stroke:var(--edge);stroke-width:1}
-.chart .band{fill:var(--s2);opacity:.20}
-.chart .line{fill:none;stroke:var(--s4);stroke-width:2}
-.chart .trend{fill:none;stroke:var(--s6);stroke-width:1.5;stroke-dasharray:5 4}
-/* Not .bar -- that class already exists for the matrix and sets height:7px,
-   which a rect would inherit as a CSS property and flatten every column. */
-.chart .col{fill:var(--s3)}
-.chart .peak{fill:none;stroke:var(--s6);stroke-width:1;stroke-dasharray:3 3}
-.chart .now{fill:none;stroke:var(--ice);stroke-width:1.5}
-h3{font-size:13px;letter-spacing:.02em;margin:30px 0 6px;font-weight:600}
-.verdict{
-  font-family:var(--mono);font-size:12px;line-height:1.65;color:var(--mute);
-  border-left:2px solid var(--s4);padding:10px 0 10px 14px;margin:20px 0 0
-}
-.verdict b{color:var(--ice);font-weight:600}
-.nodaily{font-family:var(--mono);font-size:12px;color:var(--dim);padding:10px 0}
-.result{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:22px;margin-top:22px
-}
-.result div p{margin:0;font-family:var(--mono)}
-.result .lbl{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
-.result .val{font-size:22px;font-weight:500}
-.result .val small{font-size:11px;color:var(--mute);margin-left:3px;font-weight:400}
-
-/* ---------- footer ---------- */
-footer{border-top:1px solid var(--edge);padding-top:22px;color:var(--dim);font-size:12px;max-width:78ch}
-footer a{color:var(--mute)}
-code{font-family:var(--mono);color:var(--mute);background:var(--panel);padding:1px 5px;border:1px solid var(--edge)}
-.warn{border-left:2px solid var(--s5);padding-left:14px;margin:0 0 34px;color:var(--mute);font-size:13px;max-width:66ch}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
-@media (max-width:640px){
-  .station{margin-bottom:30px}
-  .stat dd{font-size:21px}
-}
 </style>
 </head>
 <body>
@@ -187,6 +59,11 @@ code{font-family:var(--mono);color:var(--mute);background:var(--panel);padding:1
   month, measured at the official JMA station nearest each resort. Resort marketing numbers
   are not audited. These are.</p>
 </header>
+
+<nav class="pages" aria-label="Pages">
+  <a href="index.html" aria-current="page">Records</a>
+  <a href="plan.html">Trip planner</a>
+</nav>
 
 <div id="gap" class="warn" hidden></div>
 
@@ -212,38 +89,6 @@ code{font-family:var(--mono);color:var(--mute);background:var(--panel);padding:1
   <div class="legend" id="legend"></div>
 </section>
 
-<section>
-  <h2>Trip planner</h2>
-  <p class="hint">Pick the dates you can actually travel. Everything below is what those
-  exact days delivered at this station across the seasons on record — history, not a
-  forecast. Snow depth is 最深積雪, what was lying on the ground at the station.</p>
-  <div class="planner">
-    <div class="dates">
-      <label>From
-        <select id="m1" aria-label="Start month"></select>
-        <select id="d1" aria-label="Start day"></select>
-      </label>
-      <label>To
-        <select id="m2" aria-label="End month"></select>
-        <select id="d2" aria-label="End day"></select>
-      </label>
-      <span class="len" id="len"></span>
-      <span class="since">Average over
-        <select id="since" aria-label="Seasons to average"></select>
-      </span>
-    </div>
-    <div class="result" id="result"></div>
-    <p class="verdict" id="verdict"></p>
-  </div>
-
-  <h3>When to go</h3>
-  <p class="hint" id="scanhint"></p>
-  <div class="chart" id="scan"></div>
-
-  <h3>Year by year</h3>
-  <p class="hint" id="yoyhint"></p>
-  <div class="chart" id="yoy"></div>
-</section>
 
 <footer id="foot"></footer>
 </div>
@@ -251,22 +96,9 @@ code{font-family:var(--mono);color:var(--mute);background:var(--panel);padding:1
 <script>
 const DATA = /*__DATA__*/null;
 
-const LABEL = {
-  niseko:"Niseko", "niseko-annupuri":"Niseko west", rusutsu:"Rusutsu", kiroro:"Kiroro",
-  sapporo:"Sapporo", furano:"Furano", tomamu:"Tomamu", asahidake:"Asahidake",
-  sahoro:"Sahoro", kamui:"Kamui", hakkoda:"Hakkoda", appi:"Appi", geto:"Geto",
-  zao:"Zao", ani:"Ani", "aomori-spring":"Aomori Spring", "nekoma-alts":"Nekoma / Alts",
-  myoko:"Myoko", "lotte-arai":"Lotte Arai", nozawa:"Nozawa Onsen", madarao:"Madarao",
-  hakuba:"Hakuba", "hakuba-north":"Tsugaike / Cortina", "shiga-kogen":"Shiga Kogen",
-  yuzawa:"Yuzawa", itoigawa:"Charmant Hiuchi", minakami:"Minakami", nasu:"Nasu",
-  takasu:"Takasu"
-};
-// LABEL supplies display names only. The picker is driven by whatever is in
-// DATA, so a resort with committed data but no entry here still renders.
-const ALL = Object.keys(LABEL);
-const AREAS = ["Hokkaido","Tohoku","Niigata & Nagano","Elsewhere"];
-const title = k => k.split("-").map(w => w[0].toUpperCase()+w.slice(1)).join(" ");
-const nameOf = k => LABEL[k] || title(k);
+const GROUPS = /*__GROUPS__*/null;
+const TOTAL = /*__TOTAL__*/0;
+const nameOf = k => (DATA[k] && DATA[k].name) || k;
 const MONTHS = ["Nov","Dec","Jan","Feb","Mar","Apr"];
 const STOPS = [0,50,100,150,200,300];
 const RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
@@ -283,73 +115,6 @@ const median = a => { const s=[...a].sort((x,y)=>x-y), h=s.length>>1;
 
 let current = null;
 
-/* ---------- daily planner ----------
-   Days are addressed by an ordinal across the Nov 1 - Apr 30 season, so a
-   range that crosses the New Year (25 Dec - 5 Jan) is just a contiguous
-   slice. Slot 120 is 29 Feb and stays empty in three seasons out of four. */
-const MON = [11,12,1,2,3,4];
-const MLEN = {11:30, 12:31, 1:31, 2:29, 3:31, 4:30};
-const MNAME = {11:"Nov", 12:"Dec", 1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr"};
-const ORD = (() => { const o = {}; let n = 0;
-  MON.forEach(m => { o[m] = n; n += MLEN[m]; }); return o; })();
-const NDAYS = 182;
-const ord = (m,d) => ORD[m] + d - 1;
-const isLeap = y => (y%4===0 && y%100!==0) || y%400===0;
-const pct = (arr,p) => { const s=[...arr].sort((x,y)=>x-y);
-  const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
-  return lo===hi ? s[lo] : s[lo]+(s[hi]-s[lo])*(i-lo); };
-const dateLabel = (m,d) => d + " " + MNAME[m];
-
-let daily = null, dailyFor = null;
-let sel = {m1:12, d1:25, m2:1, d2:5};   // the range in the brief
-let since = 20;
-
-async function loadDaily(k){
-  const id = DATA[k].daily;
-  if(!id){ daily = null; dailyFor = k; return; }
-  if(dailyFor === k && daily) return;
-  daily = null; dailyFor = k;
-  let raw;
-  try{
-    const res = await fetch("data/daily/" + id + ".json");
-    if(!res.ok) throw new Error(res.status);
-    raw = await res.json();
-  }catch(e){ daily = null; return; }
-  if(dailyFor !== k) return;            // a different resort was picked meanwhile
-  const out = {};
-  for(const key in raw){
-    const [y, mm] = key.split("-").map(Number);
-    const sy = mm >= 11 ? y : y - 1;    // Jan-Apr belong to the season that began in Nov
-    if(!out[sy]) out[sy] = {snow:new Array(NDAYS).fill(null),
-                            depth:new Array(NDAYS).fill(null)};
-    const base = ORD[mm];
-    raw[key].snow.forEach((v,i) => { if(base+i < NDAYS) out[sy].snow[base+i] = v; });
-    raw[key].depth.forEach((v,i) => { if(base+i < NDAYS) out[sy].depth[base+i] = v; });
-  }
-  daily = out;
-}
-
-function expectedDays(a,b,sy){
-  let n = b - a + 1;
-  const f29 = ORD[2] + 28;
-  if(a <= f29 && f29 <= b && !isLeap(sy+1)) n--;
-  return n;
-}
-
-function windowStats(sy,a,b){
-  const s = daily[sy];
-  if(!s) return null;
-  let sum=0, have=0, pow=0, dsum=0, dn=0;
-  for(let i=a;i<=b;i++){
-    const v = s.snow[i];
-    if(v != null){ sum += v; have++; if(v >= 20) pow++; }
-    const dv = s.depth[i];
-    if(dv != null){ dsum += dv; dn++; }
-  }
-  if(have < expectedDays(a,b,sy) * 0.8) return null;   // too much missing to score
-  return {total:sum, powder:pow, depth: dn ? dsum/dn : null};
-}
-
 function boot(){
   const have = Object.keys(DATA||{});
   if(!have.length){
@@ -358,238 +123,35 @@ function boot(){
       "<code>fetch</code>, then <code>build</code>.</p></header></div>";
     return;
   }
-  if(have.length < ALL.length){
+  if(have.length < TOTAL){
     const g = el("gap");
     g.hidden = false;
-    g.innerHTML = have.length + " of " + ALL.length + " resorts loaded. " +
+    g.innerHTML = have.length + " of " + TOTAL + " resorts loaded. " +
       "Run the Update snowfall data workflow, or <code>jma_snowfall.py fetch</code> " +
       "locally, to fill in the rest.";
   }
   const nav = el("picker");
-  const order = k => { const i = ALL.indexOf(k); return i < 0 ? ALL.length : i; };
-  AREAS.forEach(area => {
-    const ks = have.filter(k => (DATA[k].area || "Elsewhere") === area)
-                   .sort((a,b) => order(a) - order(b));
-    if(!ks.length) return;
-    const g = document.createElement("div");
-    g.className = "pgroup";
-    g.innerHTML = "<h2>" + area + "</h2>";
-    ks.forEach(k => {
-      const b = document.createElement("button");
-      b.textContent = nameOf(k); b.dataset.k = k;
-      b.setAttribute("aria-pressed","false");
-      b.onclick = () => select(k);
-      g.appendChild(b);
-    });
-    nav.appendChild(g);
-  });
-  buildLegend(); buildDateControls();
+  const multiCountry = Object.keys(GROUPS).length > 1;
+  for(const country in GROUPS){
+    for(const area in GROUPS[country]){
+      const ks = GROUPS[country][area].filter(k => have.includes(k));
+      if(!ks.length) continue;
+      const g = document.createElement("div");
+      g.className = "pgroup";
+      g.innerHTML = "<h2>" + (multiCountry ? country + " \u00b7 " : "") + area + "</h2>";
+      ks.forEach(k => {
+        const b = document.createElement("button");
+        b.textContent = nameOf(k); b.dataset.k = k;
+        b.setAttribute("aria-pressed","false");
+        b.onclick = () => select(k);
+        g.appendChild(b);
+      });
+      nav.appendChild(g);
+    }
+  }
+  buildLegend();
   const first = nav.querySelector("button");
   select(first ? first.dataset.k : have[0]);
-}
-
-function fillDays(selId, m, keep){
-  const s = el(selId), n = MLEN[m];
-  s.innerHTML = "";
-  for(let d=1; d<=n; d++){
-    const o = document.createElement("option");
-    o.value = d; o.textContent = d;
-    s.appendChild(o);
-  }
-  s.value = Math.min(keep, n);
-  return Number(s.value);
-}
-
-function buildDateControls(){
-  [["m1","d1"],["m2","d2"]].forEach(([mi,di],which) => {
-    const ms = el(mi);
-    MON.forEach(m => {
-      const o = document.createElement("option");
-      o.value = m; o.textContent = MNAME[m];
-      ms.appendChild(o);
-    });
-    ms.value = which ? sel.m2 : sel.m1;
-    ms.onchange = () => {
-      if(which){ sel.m2 = Number(ms.value); sel.d2 = fillDays("d2", sel.m2, sel.d2); }
-      else     { sel.m1 = Number(ms.value); sel.d1 = fillDays("d1", sel.m1, sel.d1); }
-      normalise(); renderPlanner();
-    };
-    el(di).onchange = () => {
-      if(which) sel.d2 = Number(el("d2").value); else sel.d1 = Number(el("d1").value);
-      normalise(); renderPlanner();
-    };
-  });
-  fillDays("d1", sel.m1, sel.d1);
-  fillDays("d2", sel.m2, sel.d2);
-
-  const ss = el("since");
-  [10,15,20,25,30,0].forEach(n => {
-    const o = document.createElement("option");
-    o.value = n; o.textContent = n ? "the last " + n + " seasons" : "every season on record";
-    ss.appendChild(o);
-  });
-  ss.value = since;
-  ss.onchange = () => { since = Number(ss.value); renderPlanner(); };
-}
-
-/* An end date before the start would describe a range running backwards
-   through the season, so snap it to the start instead. */
-function normalise(){
-  if(ord(sel.m2, sel.d2) < ord(sel.m1, sel.d1)){
-    sel.m2 = sel.m1; sel.d2 = sel.d1;
-    el("m2").value = sel.m2; fillDays("d2", sel.m2, sel.d2);
-  }
-  syncControls();
-}
-
-function syncControls(){
-  el("m1").value = sel.m1; el("d1").value = sel.d1;
-  el("m2").value = sel.m2; el("d2").value = sel.d2;
-}
-
-const fromOrd = o => {
-  for(const m of MON) if(o < ORD[m] + MLEN[m]) return {m, d:o - ORD[m] + 1};
-  return {m:4, d:30};
-};
-const seasonLabel = y => y + "/" + String(y+1).slice(2);
-
-/* Expected snowfall for every possible start date at a fixed trip length --
-   this is what makes the best window visible rather than guessable. */
-function scanCurve(L, years){
-  const out = [];
-  for(let s=0; s+L-1 < NDAYS; s++){
-    const vals = [];
-    years.forEach(y => { const w = windowStats(y, s, s+L-1); if(w) vals.push(w.total); });
-    if(vals.length >= Math.max(3, years.length*0.5))
-      out.push({start:s, mean:mean(vals), p10:pct(vals,0.1), p90:pct(vals,0.9)});
-  }
-  return out;
-}
-
-function svgScan(curve, a){
-  const W=760, H=210, P={l:46,r:14,t:14,b:28};
-  const iw=W-P.l-P.r, ih=H-P.t-P.b;
-  const maxv = Math.max(...curve.map(c=>c.p90), 1);
-  const X = s => P.l + (s/(NDAYS-1))*iw;
-  const Y = v => P.t + ih - (v/maxv)*ih;
-  const pt = (c,k) => X(c.start).toFixed(1)+","+Y(c[k]).toFixed(1);
-  const peak = curve.reduce((x,y)=> y.mean>x.mean?y:x);
-  let g = "";
-  [0,0.5,1].forEach(f => { const v=maxv*f, y=Y(v);
-    g += `<line class="grid" x1="${P.l}" y1="${y.toFixed(1)}" x2="${P.l+iw}" y2="${y.toFixed(1)}"/>`
-       + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
-  MON.forEach(m => { const x=X(ORD[m]);
-    g += `<line class="grid" x1="${x.toFixed(1)}" y1="${P.t}" x2="${x.toFixed(1)}" y2="${P.t+ih}"/>`
-       + `<text class="axis" x="${(x+3).toFixed(1)}" y="${H-9}">${MNAME[m]}</text>`; });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date">`
-    + g
-    + `<polygon class="band" points="${curve.map(c=>pt(c,"p90")).join(" ")} `
-    + `${curve.slice().reverse().map(c=>pt(c,"p10")).join(" ")}"/>`
-    + `<polyline class="line" points="${curve.map(c=>pt(c,"mean")).join(" ")}"/>`
-    + `<line class="peak" x1="${X(peak.start).toFixed(1)}" y1="${P.t}" x2="${X(peak.start).toFixed(1)}" y2="${P.t+ih}"/>`
-    + `<line class="now" x1="${X(a).toFixed(1)}" y1="${P.t}" x2="${X(a).toFixed(1)}" y2="${P.t+ih}"/>`
-    + `</svg>`;
-}
-
-function svgYoY(rows){
-  const W=760, H=190, P={l:46,r:14,t:14,b:28};
-  const iw=W-P.l-P.r, ih=H-P.t-P.b, n=rows.length;
-  const maxv = Math.max(...rows.map(r=>r.total), 1);
-  const step = iw/n, bw = Math.max(2, step-2);
-  const X = i => P.l + (i+0.5)*step;
-  const Y = v => P.t + ih - (v/maxv)*ih;
-  let g = "";
-  [0,0.5,1].forEach(f => { const v=maxv*f, y=Y(v);
-    g += `<line class="grid" x1="${P.l}" y1="${y.toFixed(1)}" x2="${P.l+iw}" y2="${y.toFixed(1)}"/>`
-       + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
-  const bars = rows.map((r,i) =>
-    `<rect class="col" x="${(X(i)-bw/2).toFixed(1)}" y="${Y(r.total).toFixed(1)}" `
-    + `width="${bw.toFixed(1)}" height="${(P.t+ih-Y(r.total)).toFixed(1)}">`
-    + `<title>${seasonLabel(r.y)} — ${Math.round(r.total)}cm</title></rect>`).join("");
-  const sx=rows.reduce((s,_,i)=>s+i,0), sy=rows.reduce((s,r)=>s+r.total,0);
-  const sxx=rows.reduce((s,_,i)=>s+i*i,0), sxy=rows.reduce((s,r,i)=>s+i*r.total,0);
-  const den = n*sxx - sx*sx;
-  const slope = den ? (n*sxy - sx*sy)/den : 0, icpt = (sy - slope*sx)/n;
-  const trend = `<line class="trend" x1="${X(0).toFixed(1)}" y1="${Y(Math.max(0,icpt)).toFixed(1)}" `
-    + `x2="${X(n-1).toFixed(1)}" y2="${Y(Math.max(0,icpt+slope*(n-1))).toFixed(1)}"/>`;
-  let lab = "";
-  const every = Math.max(1, Math.round(n/8));
-  rows.forEach((r,i) => { if(i % every === 0 || i === n-1)
-    lab += `<text class="axis" x="${X(i).toFixed(1)}" y="${H-9}" text-anchor="middle">${String(r.y).slice(2)}</text>`; });
-  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Snowfall in the chosen window, season by season">`
-    + g + bars + trend + lab + `</svg>`, slope};
-}
-
-function planEmpty(msg){
-  el("result").innerHTML = "";
-  el("verdict").innerHTML = `<span class="nodaily">${msg}</span>`;
-  el("scan").innerHTML = ""; el("yoy").innerHTML = "";
-  el("scanhint").textContent = ""; el("yoyhint").textContent = "";
-}
-
-function renderPlanner(){
-  if(!current) return;
-  const a = ord(sel.m1, sel.d1), b = ord(sel.m2, sel.d2), L = b - a + 1;
-  el("len").innerHTML = "<b>" + L + "</b> day" + (L===1 ? "" : "s");
-  if(!daily) return planEmpty("No daily record for this station.");
-
-  const all = Object.keys(daily).map(Number).sort((x,y)=>x-y);
-  const years = since ? all.slice(-since) : all;
-  const rows = [];
-  years.forEach(y => { const w = windowStats(y,a,b); if(w) rows.push({y, ...w}); });
-  if(rows.length < 3) return planEmpty("Not enough complete seasons to score these dates.");
-
-  const totals = rows.map(r=>r.total);
-  const depths = rows.filter(r=>r.depth!=null).map(r=>r.depth);
-  const avg = mean(totals), med = median(totals);
-  const best = rows.reduce((x,y)=> y.total>x.total?y:x);
-  const worst = rows.reduce((x,y)=> y.total<x.total?y:x);
-  const sub = s => `<p class="lbl" style="margin-top:6px;letter-spacing:.04em;text-transform:none">${s}</p>`;
-  el("result").innerHTML = [
-    ["Typical", Math.round(avg)+"<small>cm</small>", "median "+Math.round(med)+"cm"],
-    ["Usual range", Math.round(pct(totals,0.1))+"–"+Math.round(pct(totals,0.9))+"<small>cm</small>",
-      "8 seasons in 10"],
-    ["Powder days", (Math.round(mean(rows.map(r=>r.powder))*10)/10)+"", "days of 20cm or more"],
-    ["Typical base", depths.length ? Math.round(mean(depths))+"<small>cm</small>" : "—",
-      "snow lying at the station"],
-    ["Best on record", Math.round(best.total)+"<small>cm</small>", seasonLabel(best.y)],
-    ["Leanest", Math.round(worst.total)+"<small>cm</small>", seasonLabel(worst.y)]
-  ].map(([l,v,s]) => `<div><p class="lbl">${l}</p><p class="val">${v}</p>${sub(s)}</div>`).join("");
-
-  const curve = scanCurve(L, years);
-  if(curve.length){
-    const peak = curve.reduce((x,y)=> y.mean>x.mean?y:x);
-    const p1 = fromOrd(peak.start), p2 = fromOrd(peak.start+L-1);
-    const delta = Math.round(peak.mean - avg);
-    el("verdict").innerHTML =
-      `Across ${rows.length} seasons, <b>${dateLabel(sel.m1,sel.d1)} – ${dateLabel(sel.m2,sel.d2)}</b> `
-      + `brought a median of <b>${Math.round(med)}cm</b>, anywhere from ${Math.round(worst.total)} `
-      + `to ${Math.round(best.total)}cm. The snowiest ${L}-day window here is `
-      + `<b>${dateLabel(p1.m,p1.d)} – ${dateLabel(p2.m,p2.d)}</b> at ${Math.round(peak.mean)}cm`
-      + (delta > 2 ? `, about ${delta}cm more than your dates.` : `, essentially matching your dates.`);
-    el("scan").innerHTML = svgScan(curve, a);
-    el("scanhint").innerHTML =
-      `Average snowfall for a ${L}-day trip starting on each date, over ${
-        since ? "the last "+since+" seasons" : "every season on record"}. `
-      + `The shaded band is the 10th to 90th percentile — its width is how unreliable that `
-      + `window is. The white line marks your start date; the dashed line marks the peak.`;
-  }
-
-  const allRows = [];
-  all.forEach(y => { const w = windowStats(y,a,b); if(w) allRows.push({y, ...w}); });
-  if(allRows.length >= 5){
-    const {svg, slope} = svgYoY(allRows);
-    el("yoy").innerHTML = svg;
-    const change = Math.round(slope * (allRows.length - 1));
-    el("yoyhint").innerHTML =
-      `The same dates in every season on record, ${seasonLabel(allRows[0].y)} to `
-      + `${seasonLabel(allRows[allRows.length-1].y)}. Scatter between the bars is the `
-      + `year-to-year variability. The dashed line is the linear trend: `
-      + (Math.abs(change) < 5 ? `essentially flat across the record.`
-         : `${change < 0 ? "down" : "up"} about ${Math.abs(change)}cm over the period.`);
-  }else{
-    el("yoy").innerHTML = ""; el("yoyhint").textContent = "";
-  }
 }
 
 function buildLegend(){
@@ -608,8 +170,6 @@ function select(k){
   el("picker").querySelectorAll("button").forEach(b =>
     b.setAttribute("aria-pressed", b.dataset.k === k));
   render();
-  el("verdict").innerHTML = "<span class='nodaily'>Loading daily record…</span>";
-  loadDaily(k).then(() => { if(current === k) renderPlanner(); });
 }
 
 function render(){

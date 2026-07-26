@@ -1,0 +1,321 @@
+{
+ "niseko": {
+  "name": "Niseko",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "倶知安",
+   "prec_no": 16
+  },
+  "note": "Valley town station below the Hirafu base"
+ },
+ "niseko-annupuri": {
+  "name": "Niseko west",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "蘭越",
+   "prec_no": 16
+  },
+  "note": "Rankoshi 40m; west side of the same massif"
+ },
+ "rusutsu": {
+  "name": "Rusutsu",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "喜茂別",
+   "prec_no": 16
+  },
+  "note": "Kimobetsu 130m; Rusutsu base ~400m"
+ },
+ "kiroro": {
+  "name": "Kiroro",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "赤井川",
+   "prec_no": 16
+  },
+  "note": "Akaigawa 220m; Kiroro base 570m, top 1180m"
+ },
+ "sapporo": {
+  "name": "Sapporo",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "札幌",
+   "prec_no": 14
+  },
+  "note": "Sapporo 17m; Teine and Kokusai sit far above the city"
+ },
+ "furano": {
+  "name": "Furano",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "富良野",
+   "prec_no": 12
+  },
+  "note": "Furano 173m; resort base 235m, top 1074m"
+ },
+ "tomamu": {
+  "name": "Tomamu",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "占冠",
+   "prec_no": 12
+  },
+  "note": "Shimukappu 250m; Tomamu base 545m"
+ },
+ "asahidake": {
+  "name": "Asahidake",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "旭川",
+   "prec_no": 12
+  },
+  "note": "Asahikawa 120m; Asahidake ropeway base 1100m — big gap"
+ },
+ "sahoro": {
+  "name": "Sahoro",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "新得",
+   "prec_no": 20
+  },
+  "note": "Shintoku 177m; Sahoro base 480m"
+ },
+ "kamui": {
+  "name": "Kamui",
+  "country": "Japan",
+  "area": "Hokkaido",
+  "source": "jma",
+  "station": {
+   "name_ja": "旭川",
+   "prec_no": 12
+  },
+  "note": "Asahikawa 120m; Kamui Ski Links base 250m"
+ },
+ "hakkoda": {
+  "name": "Hakkoda",
+  "country": "Japan",
+  "area": "Tohoku",
+  "source": "jma",
+  "station": {
+   "name_ja": "酸ケ湯",
+   "prec_no": 31
+  },
+  "note": "Sukayu 890m — on-mountain, Japan's deepest snowpack station"
+ },
+ "appi": {
+  "name": "Appi",
+  "country": "Japan",
+  "area": "Tohoku",
+  "source": "jma",
+  "station": {
+   "name_ja": "荒屋",
+   "prec_no": 33
+  },
+  "note": "Araya 320m; Appi base 500m"
+ },
+ "geto": {
+  "name": "Geto",
+  "country": "Japan",
+  "area": "Tohoku",
+  "source": "jma",
+  "station": {
+   "name_ja": "湯田",
+   "prec_no": 33
+  },
+  "note": "Yuda 235m; Geto Kogen base 430m"
+ },
+ "zao": {
+  "name": "Zao",
+  "country": "Japan",
+  "area": "Tohoku",
+  "source": "jma",
+  "station": {
+   "name_ja": "山形",
+   "prec_no": 35
+  },
+  "note": "Yamagata 153m; Zao base 780m — large gap, city undercounts"
+ },
+ "ani": {
+  "name": "Ani",
+  "country": "Japan",
+  "area": "Tohoku",
+  "source": "jma",
+  "station": {
+   "name_ja": "阿仁合",
+   "prec_no": 32
+  },
+  "note": "Aniai 90m; Ani base 200m"
+ },
+ "aomori-spring": {
+  "name": "Aomori Spring",
+  "country": "Japan",
+  "area": "Tohoku",
+  "source": "jma",
+  "station": {
+   "name_ja": "鰺ケ沢",
+   "prec_no": 31
+  },
+  "note": "Ajigasawa 40m; resort base 200m"
+ },
+ "nekoma-alts": {
+  "name": "Nekoma / Alts",
+  "country": "Japan",
+  "area": "Tohoku",
+  "source": "jma",
+  "station": {
+   "name_ja": "猪苗代",
+   "prec_no": 36
+  },
+  "note": "Inawashiro 514m; Nekoma and Alts sit above"
+ },
+ "myoko": {
+  "name": "Myoko",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "関山",
+   "prec_no": 54
+  },
+  "note": "Sekiyama 350m; Akakura base 450m"
+ },
+ "lotte-arai": {
+  "name": "Lotte Arai",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "新井",
+   "prec_no": 54
+  },
+  "note": "Arai 40m; resort base 330m"
+ },
+ "nozawa": {
+  "name": "Nozawa Onsen",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "野沢温泉",
+   "prec_no": 48
+  },
+  "note": "Nozawa Onsen 570m; village-level station, top 1650m"
+ },
+ "madarao": {
+  "name": "Madarao",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "飯山",
+   "prec_no": 48
+  },
+  "note": "Iiyama 313m; Madarao base 1000m"
+ },
+ "hakuba": {
+  "name": "Hakuba",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "白馬",
+   "prec_no": 48
+  },
+  "note": "Hakuba 703m; Happo base 760m — unusually well matched"
+ },
+ "hakuba-north": {
+  "name": "Tsugaike / Cortina",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "小谷",
+   "prec_no": 48
+  },
+  "note": "Otari 520m; Tsugaike and Cortina bases 800-900m"
+ },
+ "shiga-kogen": {
+  "name": "Shiga Kogen",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "野沢温泉",
+   "prec_no": 48
+  },
+  "note": "PROXY ONLY. No Shiga station; Shiga base is 1300-2300m"
+ },
+ "yuzawa": {
+  "name": "Yuzawa",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "湯沢",
+   "prec_no": 54
+  },
+  "note": "Yuzawa 240m; Gala/Ishiuchi/Naeba/Kagura all draw from here"
+ },
+ "itoigawa": {
+  "name": "Charmant Hiuchi",
+  "country": "Japan",
+  "area": "Niigata & Nagano",
+  "source": "jma",
+  "station": {
+   "name_ja": "糸魚川",
+   "prec_no": 54
+  },
+  "note": "Itoigawa 3m; Charmant Hiuchi base 400m"
+ },
+ "minakami": {
+  "name": "Minakami",
+  "country": "Japan",
+  "area": "Gunma, Tochigi & Gifu",
+  "source": "jma",
+  "station": {
+   "name_ja": "藤原",
+   "prec_no": 42
+  },
+  "note": "Fujiwara 700m; Tanigawadake and Hodaira above"
+ },
+ "nasu": {
+  "name": "Nasu",
+  "country": "Japan",
+  "area": "Gunma, Tochigi & Gifu",
+  "source": "jma",
+  "station": {
+   "name_ja": "那須高原",
+   "prec_no": 41
+  },
+  "note": "Nasu Kogen 749m"
+ },
+ "takasu": {
+  "name": "Takasu",
+  "country": "Japan",
+  "area": "Gunma, Tochigi & Gifu",
+  "source": "jma",
+  "station": {
+   "name_ja": "長滝",
+   "prec_no": 52
+  },
+  "note": "Nagataki 470m; Takasu and Dynaland bases 900m+"
+ }
+}

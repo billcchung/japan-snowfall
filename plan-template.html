@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trip planner — snowfall by date range</title>
+<meta name="description" content="Compare ski resorts over any range of dates using historical daily snowfall from official weather stations. See what a window typically delivers, how much it varies, and whether a different fortnight would be better.">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="Trip planner — snowfall by date range">
+<meta property="og:description" content="Pick resorts and dates. See what those days historically delivered, and whether you should go somewhere else.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+/* ---------- series colours, in pick order ---------- */
+:root{
+  --c0:#4A6FC4; --c1:#B4348C; --c2:#3FA7A0; --c3:#8257BE;
+  --c4:#D91A6B; --c5:#6FBF8B; --c6:#E0A33A; --c7:#24659B;
+}
+
+/* ---------- multi-select picker ---------- */
+.picker button::before{
+  content:"";display:inline-block;width:7px;height:7px;margin-right:7px;
+  border:1px solid var(--edge2);vertical-align:middle;background:transparent
+}
+.picker button[aria-pressed=true]::before{background:currentColor;border-color:currentColor}
+.picker button[aria-pressed=true]{
+  background:transparent;color:var(--ice);font-weight:600;
+  border-color:var(--swatch,var(--ice))
+}
+.pickbar{display:flex;gap:16px;align-items:baseline;margin:2px 0 24px}
+.pickbar button{
+  background:none;border:0;padding:0;cursor:pointer;color:var(--dim);
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase
+}
+.pickbar button:hover{color:var(--ice)}
+.pickbar span{font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--mute)}
+
+/* ---------- date controls ---------- */
+.planner{background:var(--panel);border:1px solid var(--edge);padding:22px}
+.dates{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:baseline}
+.dates label,.dates .since{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--dim)
+}
+.dates select{
+  font-family:var(--mono);font-size:13px;letter-spacing:.02em;text-transform:none;
+  background:var(--void);color:var(--ice);border:1px solid var(--edge2);
+  padding:6px 8px;margin-left:5px;border-radius:2px;cursor:pointer
+}
+.dates select:focus-visible{outline:2px solid var(--s3);outline-offset:1px}
+.dates .len{font-family:var(--mono);font-size:12px;color:var(--mute)}
+.dates .len b{color:var(--ice);font-weight:600}
+
+.verdict{
+  font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--mute);
+  border-left:2px solid var(--s4);padding:12px 0 12px 14px;margin:26px 0 0
+}
+.verdict b{color:var(--ice);font-weight:600}
+.nodaily{font-family:var(--mono);font-size:12px;color:var(--dim)}
+
+/* ---------- comparison table ---------- */
+.tablewrap{width:100%;overflow-x:auto}
+table.cmp{border-collapse:collapse;font-family:var(--mono);font-size:12px;
+  width:100%;min-width:660px}
+table.cmp th{
+  font-weight:500;color:var(--dim);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;padding:0 10px 10px;text-align:right;white-space:nowrap
+}
+table.cmp th:first-child,table.cmp td:first-child{text-align:left;padding-left:0}
+table.cmp td{padding:9px 10px;text-align:right;border-top:1px solid var(--edge);
+  font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap}
+table.cmp td.who{color:var(--ice)}
+table.cmp td.who i{display:inline-block;width:8px;height:8px;margin-right:9px;
+  vertical-align:middle;font-style:normal}
+table.cmp td.big{color:var(--ice);font-size:14px}
+table.cmp td .sub{color:var(--dim);font-size:10px;letter-spacing:.06em}
+table.cmp tr:hover td{color:var(--ice)}
+table.cmp tr.top td.big{color:#fff;font-weight:600}
+
+/* ---------- charts ---------- */
+.chart{margin:0 0 4px;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:560px;height:auto}
+.chart .axis{fill:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.08em}
+.chart .grid{stroke:var(--edge);stroke-width:1}
+.chart .ln{fill:none;stroke-width:2}
+.chart .bandfill{opacity:.15}
+.chart .now{fill:none;stroke:var(--ice);stroke-width:1.5}
+.chart .dot{stroke:none}
+.key{display:flex;flex-wrap:wrap;gap:6px 20px;margin:12px 0 0;
+  font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--mute)}
+.key span{display:flex;align-items:center;gap:8px}
+.key i{width:14px;height:3px;display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="kicker">Historical daily records · not a forecast</p>
+  <h1>When should you go
+    <span class="ja">降雪の深さ日合計 — 期間別</span></h1>
+  <p class="lede">Pick the resorts you're weighing up and the dates you can travel. Every
+  figure is what those exact days actually delivered at the nearest official weather
+  station, season after season.</p>
+</header>
+
+<nav class="pages" aria-label="Pages">
+  <a href="index.html">Records</a>
+  <a href="plan.html" aria-current="page">Trip planner</a>
+</nav>
+
+<div id="gap" class="warn" hidden></div>
+
+<section>
+  <h2>Resorts</h2>
+  <p class="hint">Pick as many as you like. Resorts sharing one weather station — Asahidake
+  and Kamui both read from 旭川 — will show identical numbers.</p>
+  <nav class="picker" id="picker" aria-label="Resorts"></nav>
+  <div class="pickbar">
+    <button type="button" id="clear">Clear all</button>
+    <button type="button" id="area-all">Select visible area</button>
+    <span id="count"></span>
+  </div>
+</section>
+
+<section>
+  <h2>Dates</h2>
+  <div class="planner">
+    <div class="dates">
+      <label>From
+        <select id="m1" aria-label="Start month"></select>
+        <select id="d1" aria-label="Start day"></select>
+      </label>
+      <label>To
+        <select id="m2" aria-label="End month"></select>
+        <select id="d2" aria-label="End day"></select>
+      </label>
+      <span class="len" id="len"></span>
+      <span class="since">Average over
+        <select id="since" aria-label="Seasons to average"></select>
+      </span>
+    </div>
+    <p class="verdict" id="verdict"></p>
+  </div>
+</section>
+
+<section>
+  <h2>How they compare</h2>
+  <p class="hint" id="cmphint"></p>
+  <div class="tablewrap"><table class="cmp" id="cmp"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<section>
+  <h2>When to go</h2>
+  <p class="hint" id="scanhint"></p>
+  <div class="chart" id="scan"></div>
+  <div class="key" id="key"></div>
+</section>
+
+<section>
+  <h2>Year by year</h2>
+  <p class="hint" id="yoyhint"></p>
+  <div class="chart" id="yoy"></div>
+</section>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const GROUPS = /*__GROUPS__*/null;
+const TOTAL = /*__TOTAL__*/0;
+
+const el = id => document.getElementById(id);
+const nameOf = k => (DATA[k] && DATA[k].name) || k;
+const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
+const median = a => { const s=[...a].sort((x,y)=>x-y), h=s.length>>1;
+  return s.length%2 ? s[h] : (s[h-1]+s[h])/2; };
+const pct = (arr,p) => { const s=[...arr].sort((x,y)=>x-y);
+  const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
+  return lo===hi ? s[lo] : s[lo]+(s[hi]-s[lo])*(i-lo); };
+
+/* Days are an ordinal across Nov 1 - Apr 30, so a range crossing the New Year
+   is a contiguous slice. Slot 120 is 29 Feb, empty in three seasons of four. */
+const MON = [11,12,1,2,3,4];
+const MLEN = {11:30, 12:31, 1:31, 2:29, 3:31, 4:30};
+const MNAME = {11:"Nov", 12:"Dec", 1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr"};
+const ORD = (() => { const o={}; let n=0; MON.forEach(m => {o[m]=n; n+=MLEN[m];}); return o; })();
+const NDAYS = 182;
+const ord = (m,d) => ORD[m] + d - 1;
+const fromOrd = o => { for(const m of MON) if(o < ORD[m]+MLEN[m]) return {m, d:o-ORD[m]+1};
+  return {m:4, d:30}; };
+const isLeap = y => (y%4===0 && y%100!==0) || y%400===0;
+const dateLabel = (m,d) => d + " " + MNAME[m];
+const seasonLabel = y => y + "/" + String(y+1).slice(2);
+const NCOL = 8;
+const colourOf = i => "var(--c" + (i % NCOL) + ")";
+
+let picked = [];
+let sel = {m1:12, d1:25, m2:1, d2:5};
+let since = 20;
+const cache = {};        // station file id -> {seasonYear: {snow, depth}}
+
+/* Keyed by station file, so resorts sharing a station download it once. */
+async function ensureDaily(k){
+  const id = DATA[k] && DATA[k].daily;
+  if(!id) return null;
+  if(cache[id] !== undefined) return cache[id];
+  let raw;
+  try{
+    const res = await fetch("data/daily/" + id + ".json");
+    if(!res.ok) throw new Error(res.status);
+    raw = await res.json();
+  }catch(e){ cache[id] = null; return null; }
+  const out = {};
+  for(const key in raw){
+    const [y, mm] = key.split("-").map(Number);
+    const sy = mm >= 11 ? y : y - 1;
+    if(!out[sy]) out[sy] = {snow:new Array(NDAYS).fill(null),
+                            depth:new Array(NDAYS).fill(null)};
+    const base = ORD[mm];
+    raw[key].snow.forEach((v,i) => { if(base+i < NDAYS) out[sy].snow[base+i] = v; });
+    raw[key].depth.forEach((v,i) => { if(base+i < NDAYS) out[sy].depth[base+i] = v; });
+  }
+  cache[id] = out;
+  return out;
+}
+
+function expectedDays(a,b,sy){
+  let n = b - a + 1;
+  const f29 = ORD[2] + 28;
+  if(a <= f29 && f29 <= b && !isLeap(sy+1)) n--;
+  return n;
+}
+
+function windowStats(seasons, sy, a, b){
+  const s = seasons[sy];
+  if(!s) return null;
+  let sum=0, have=0, pow=0, dsum=0, dn=0;
+  for(let i=a;i<=b;i++){
+    const v = s.snow[i];
+    if(v != null){ sum += v; have++; if(v >= 20) pow++; }
+    const dv = s.depth[i];
+    if(dv != null){ dsum += dv; dn++; }
+  }
+  if(have < expectedDays(a,b,sy) * 0.8) return null;
+  return {total:sum, powder:pow, depth: dn ? dsum/dn : null};
+}
+
+function scanCurve(seasons, L, years){
+  const out = [];
+  for(let s=0; s+L-1 < NDAYS; s++){
+    const vals = [];
+    years.forEach(y => { const w = windowStats(seasons, y, s, s+L-1); if(w) vals.push(w.total); });
+    if(vals.length >= Math.max(3, years.length*0.5))
+      out.push({start:s, mean:mean(vals), p10:pct(vals,0.1), p90:pct(vals,0.9)});
+  }
+  return out;
+}
+
+/* ---------- picker ---------- */
+function buildPicker(){
+  const have = Object.keys(DATA||{});
+  if(have.length < TOTAL){
+    const g = el("gap");
+    g.hidden = false;
+    g.innerHTML = have.length + " of " + TOTAL + " resorts have data. Run the update " +
+      "workflow to fill in the rest.";
+  }
+  const nav = el("picker");
+  const multiCountry = Object.keys(GROUPS).length > 1;
+  for(const country in GROUPS){
+    for(const area in GROUPS[country]){
+      const ks = GROUPS[country][area].filter(k => have.includes(k));
+      if(!ks.length) continue;
+      const g = document.createElement("div");
+      g.className = "pgroup";
+      g.dataset.area = area;
+      g.innerHTML = "<h2>" + (multiCountry ? country + " · " : "") + area + "</h2>";
+      ks.forEach(k => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = nameOf(k);
+        b.dataset.k = k;
+        b.setAttribute("aria-pressed","false");
+        b.onclick = () => toggle(k);
+        g.appendChild(b);
+      });
+      nav.appendChild(g);
+    }
+  }
+  el("clear").onclick = () => { picked = []; refresh(); };
+  el("area-all").onclick = () => {
+    const first = nav.querySelector(".pgroup");
+    if(!first) return;
+    [...first.querySelectorAll("button")].forEach(b => {
+      if(!picked.includes(b.dataset.k)) picked.push(b.dataset.k);
+    });
+    refresh();
+  };
+}
+
+function toggle(k){
+  const at = picked.indexOf(k);
+  if(at > -1) picked.splice(at,1); else picked.push(k);
+  refresh();
+}
+
+function paintPicker(){
+  el("picker").querySelectorAll("button").forEach(b => {
+    const i = picked.indexOf(b.dataset.k);
+    b.setAttribute("aria-pressed", i > -1);
+    b.style.setProperty("--swatch", i > -1 ? colourOf(i) : "");
+    b.style.color = i > -1 ? colourOf(i) : "";
+  });
+  el("count").textContent = picked.length
+    ? picked.length + " selected" : "none selected";
+}
+
+/* ---------- date controls ---------- */
+function fillDays(selId, m, keep){
+  const s = el(selId);
+  s.innerHTML = "";
+  for(let d=1; d<=MLEN[m]; d++){
+    const o = document.createElement("option");
+    o.value = d; o.textContent = d;
+    s.appendChild(o);
+  }
+  s.value = Math.min(keep, MLEN[m]);
+  return Number(s.value);
+}
+
+function buildDateControls(){
+  [["m1","d1"],["m2","d2"]].forEach(([mi,di],which) => {
+    const ms = el(mi);
+    MON.forEach(m => {
+      const o = document.createElement("option");
+      o.value = m; o.textContent = MNAME[m];
+      ms.appendChild(o);
+    });
+    ms.value = which ? sel.m2 : sel.m1;
+    ms.onchange = () => {
+      if(which){ sel.m2 = Number(ms.value); sel.d2 = fillDays("d2", sel.m2, sel.d2); }
+      else     { sel.m1 = Number(ms.value); sel.d1 = fillDays("d1", sel.m1, sel.d1); }
+      normalise(); refresh();
+    };
+    el(di).onchange = () => {
+      if(which) sel.d2 = Number(el("d2").value); else sel.d1 = Number(el("d1").value);
+      normalise(); refresh();
+    };
+  });
+  fillDays("d1", sel.m1, sel.d1);
+  fillDays("d2", sel.m2, sel.d2);
+  const ss = el("since");
+  [10,15,20,25,30,0].forEach(n => {
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n ? "the last " + n + " seasons" : "every season on record";
+    ss.appendChild(o);
+  });
+  ss.value = since;
+  ss.onchange = () => { since = Number(ss.value); refresh(); };
+}
+
+function normalise(){
+  if(ord(sel.m2, sel.d2) < ord(sel.m1, sel.d1)){
+    sel.m2 = sel.m1; sel.d2 = sel.d1;
+    el("m2").value = sel.m2; fillDays("d2", sel.m2, sel.d2);
+  }
+  el("m1").value = sel.m1; el("d1").value = sel.d1;
+  el("m2").value = sel.m2; el("d2").value = sel.d2;
+}
+
+/* ---------- charts ---------- */
+function axes(W,H,P,maxv,Xof){
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  let g = "";
+  [0,0.5,1].forEach(f => { const v=maxv*f, y=P.t+ih-(f*ih);
+    g += `<line class="grid" x1="${P.l}" y1="${y.toFixed(1)}" x2="${P.l+iw}" y2="${y.toFixed(1)}"/>`
+       + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
+  MON.forEach(m => { const x=Xof(ORD[m]);
+    g += `<line class="grid" x1="${x.toFixed(1)}" y1="${P.t}" x2="${x.toFixed(1)}" y2="${P.t+ih}"/>`
+       + `<text class="axis" x="${(x+3).toFixed(1)}" y="${H-9}">${MNAME[m]}</text>`; });
+  return g;
+}
+
+function svgScan(series, a){
+  const W=760, H=230, P={l:46,r:14,t:14,b:28};
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const maxv = Math.max(1, ...series.flatMap(s => s.curve.map(c =>
+    series.length === 1 ? c.p90 : c.mean)));
+  const X = s => P.l + (s/(NDAYS-1))*iw;
+  const Y = v => P.t + ih - (Math.min(v,maxv)/maxv)*ih;
+  let body = axes(W,H,P,maxv,X);
+  // The percentile band only reads cleanly for a single resort; with several
+  // selected the overlapping fills turn to mud, so show means alone.
+  if(series.length === 1){
+    const c = series[0].curve;
+    body += `<polygon class="bandfill" fill="${series[0].colour}" points="`
+      + c.map(p=>X(p.start).toFixed(1)+","+Y(p.p90).toFixed(1)).join(" ") + " "
+      + c.slice().reverse().map(p=>X(p.start).toFixed(1)+","+Y(p.p10).toFixed(1)).join(" ")
+      + `"/>`;
+  }
+  series.forEach(s => {
+    body += `<polyline class="ln" stroke="${s.colour}" points="`
+      + s.curve.map(p=>X(p.start).toFixed(1)+","+Y(p.mean).toFixed(1)).join(" ") + `"/>`;
+    const pk = s.curve.reduce((x,y)=> y.mean>x.mean?y:x, s.curve[0]);
+    if(pk) body += `<circle class="dot" fill="${s.colour}" cx="${X(pk.start).toFixed(1)}" `
+      + `cy="${Y(pk.mean).toFixed(1)}" r="3.5"><title>${s.name} peaks here</title></circle>`;
+  });
+  body += `<line class="now" x1="${X(a).toFixed(1)}" y1="${P.t}" x2="${X(a).toFixed(1)}" y2="${P.t+ih}"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date">${body}</svg>`;
+}
+
+function svgYoY(series){
+  const W=760, H=210, P={l:46,r:14,t:14,b:28};
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const years = [...new Set(series.flatMap(s => s.allRows.map(r => r.y)))].sort((a,b)=>a-b);
+  if(!years.length) return "";
+  const maxv = Math.max(1, ...series.flatMap(s => s.allRows.map(r => r.total)));
+  const X = y => P.l + ((y - years[0])/Math.max(1, years[years.length-1]-years[0]))*iw;
+  const Y = v => P.t + ih - (v/maxv)*ih;
+  let g = "";
+  [0,0.5,1].forEach(f => { const v=maxv*f, y=P.t+ih-(f*ih);
+    g += `<line class="grid" x1="${P.l}" y1="${y.toFixed(1)}" x2="${P.l+iw}" y2="${y.toFixed(1)}"/>`
+       + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
+  const every = Math.max(1, Math.round(years.length/8));
+  years.forEach((y,i) => { if(i % every === 0 || i === years.length-1)
+    g += `<text class="axis" x="${X(y).toFixed(1)}" y="${H-9}" text-anchor="middle">${String(y).slice(2)}</text>`; });
+  series.forEach(s => {
+    g += `<polyline class="ln" stroke="${s.colour}" style="opacity:.75" points="`
+      + s.allRows.map(r=>X(r.y).toFixed(1)+","+Y(r.total).toFixed(1)).join(" ") + `"/>`;
+    const n=s.allRows.length;
+    const sx=s.allRows.reduce((t,_,i)=>t+i,0), sy=s.allRows.reduce((t,r)=>t+r.total,0);
+    const sxx=s.allRows.reduce((t,_,i)=>t+i*i,0), sxy=s.allRows.reduce((t,r,i)=>t+i*r.total,0);
+    const den=n*sxx-sx*sx, slope=den?(n*sxy-sx*sy)/den:0, icpt=(sy-slope*sx)/n;
+    g += `<line class="ln" stroke="${s.colour}" stroke-dasharray="5 4" stroke-width="1.5" `
+      + `x1="${X(s.allRows[0].y).toFixed(1)}" y1="${Y(Math.max(0,icpt)).toFixed(1)}" `
+      + `x2="${X(s.allRows[n-1].y).toFixed(1)}" y2="${Y(Math.max(0,icpt+slope*(n-1))).toFixed(1)}"/>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Snowfall in the chosen window, season by season">${g}</svg>`;
+}
+
+/* ---------- main ---------- */
+function blank(msg){
+  el("verdict").innerHTML = `<span class="nodaily">${msg}</span>`;
+  el("cmp").tHead.innerHTML = ""; el("cmp").tBodies[0].innerHTML = "";
+  el("scan").innerHTML = ""; el("yoy").innerHTML = ""; el("key").innerHTML = "";
+  el("cmphint").textContent = ""; el("scanhint").textContent = ""; el("yoyhint").textContent = "";
+}
+
+async function refresh(){
+  paintPicker();
+  const a = ord(sel.m1, sel.d1), b = ord(sel.m2, sel.d2), L = b - a + 1;
+  el("len").innerHTML = "<b>" + L + "</b> day" + (L===1 ? "" : "s");
+  if(!picked.length) return blank("Pick at least one resort above.");
+
+  const token = picked.join("|") + a + b + since;
+  refresh.token = token;
+  const loaded = await Promise.all(picked.map(ensureDaily));
+  if(refresh.token !== token) return;      // selection changed while loading
+
+  const series = [];
+  picked.forEach((k,i) => {
+    const seasons = loaded[i];
+    if(!seasons) return;
+    const all = Object.keys(seasons).map(Number).sort((x,y)=>x-y);
+    const years = since ? all.slice(-since) : all;
+    const rows = [];
+    years.forEach(y => { const w = windowStats(seasons,y,a,b); if(w) rows.push({y, ...w}); });
+    if(rows.length < 3) return;
+    const allRows = [];
+    all.forEach(y => { const w = windowStats(seasons,y,a,b); if(w) allRows.push({y, ...w}); });
+    series.push({
+      k, name:nameOf(k), area:DATA[k].area, colour:colourOf(i),
+      rows, allRows, curve:scanCurve(seasons, L, years),
+      totals:rows.map(r=>r.total)
+    });
+  });
+  if(!series.length) return blank("No daily record for the selected resorts.");
+
+  series.forEach(s => {
+    s.avg = mean(s.totals); s.med = median(s.totals);
+    s.p10 = pct(s.totals,0.1); s.p90 = pct(s.totals,0.9);
+    s.powder = mean(s.rows.map(r=>r.powder));
+    const d = s.rows.filter(r=>r.depth!=null).map(r=>r.depth);
+    s.base = d.length ? mean(d) : null;
+    const pk = s.curve.length ? s.curve.reduce((x,y)=> y.mean>x.mean?y:x) : null;
+    s.peak = pk; s.gap = pk ? pk.mean - s.avg : 0;
+  });
+  const ranked = [...series].sort((x,y) => y.med - x.med);
+
+  // ---- table ----
+  el("cmp").tHead.innerHTML = "<tr><th>Resort</th><th>Typical</th><th>Usual range</th>"
+    + "<th>Powder days</th><th>Base</th><th>Best window instead</th></tr>";
+  el("cmp").tBodies[0].innerHTML = ranked.map((s,i) => {
+    const p1 = s.peak ? fromOrd(s.peak.start) : null;
+    const p2 = s.peak ? fromOrd(s.peak.start + L - 1) : null;
+    const better = s.gap > 5 && p1
+      ? `${dateLabel(p1.m,p1.d)} – ${dateLabel(p2.m,p2.d)}<br><span class="sub">+${Math.round(s.gap)}cm</span>`
+      : `<span class="sub">your dates are its peak</span>`;
+    return `<tr class="${i===0?"top":""}">`
+      + `<td class="who"><i style="background:${s.colour}"></i>${s.name}`
+      + `<br><span class="sub">${s.area}</span></td>`
+      + `<td class="big">${Math.round(s.med)}<span class="sub">cm</span>`
+      + `<br><span class="sub">mean ${Math.round(s.avg)}</span></td>`
+      + `<td>${Math.round(s.p10)}–${Math.round(s.p90)}<span class="sub">cm</span></td>`
+      + `<td>${Math.round(s.powder*10)/10}</td>`
+      + `<td>${s.base!=null ? Math.round(s.base)+'<span class="sub">cm</span>' : "—"}</td>`
+      + `<td>${better}</td></tr>`;
+  }).join("");
+  el("cmphint").innerHTML = `Ranked by median snowfall over `
+    + `<b>${dateLabel(sel.m1,sel.d1)} – ${dateLabel(sel.m2,sel.d2)}</b>, across `
+    + (since ? "the last " + since + " seasons" : "every season on record")
+    + `. "Usual range" is the 10th to 90th percentile — a wide range means these dates are a `
+    + `gamble at that resort. "Base" is snow lying on the ground at the station.`;
+
+  // ---- verdict ----
+  const top = ranked[0], worst = ranked[ranked.length-1];
+  const allBelowPeak = ranked.every(s => s.gap > 5);
+  let v = `Over ${top.rows.length} seasons, <b>${top.name}</b> is the strongest of your `
+    + `${ranked.length} pick${ranked.length===1?"":"s"} for these dates at a median of `
+    + `<b>${Math.round(top.med)}cm</b>`;
+  if(ranked.length > 1) v += `, against ${Math.round(worst.med)}cm for ${worst.name}`;
+  v += ". ";
+  if(allBelowPeak){
+    const p1 = fromOrd(top.peak.start), p2 = fromOrd(top.peak.start + L - 1);
+    v += `Every resort you picked peaks later than your window — `
+      + `<b>${dateLabel(p1.m,p1.d)} – ${dateLabel(p2.m,p2.d)}</b> would add about `
+      + `${Math.round(top.gap)}cm at ${top.name}. Worth shifting the trip if you can.`;
+  }else{
+    v += `Your dates are at or near the seasonal peak for ${
+      ranked.filter(s=>s.gap<=5).length} of them.`;
+  }
+  el("verdict").innerHTML = v;
+
+  // ---- charts ----
+  el("scan").innerHTML = svgScan(series, a);
+  el("key").innerHTML = series.map(s =>
+    `<span><i style="background:${s.colour}"></i>${s.name}</span>`).join("");
+  el("scanhint").innerHTML = `Average snowfall for a ${L}-day trip starting on each date. `
+    + `The dot marks each resort's best window; the white line is your start date.`
+    + (series.length === 1
+        ? ` The shaded band is the 10th to 90th percentile.`
+        : ` Percentile bands are hidden while several resorts are shown — select one on its own to see its spread.`);
+
+  const yseries = series.filter(s => s.allRows.length >= 5);
+  if(yseries.length){
+    el("yoy").innerHTML = svgYoY(yseries);
+    el("yoyhint").innerHTML = `Your dates in every season on record. The solid line is each `
+      + `season's total — its jaggedness is the year-to-year variability — and the dashed `
+      + `line is that resort's linear trend.`;
+  }else{ el("yoy").innerHTML = ""; el("yoyhint").textContent = ""; }
+}
+
+function boot(){
+  const have = Object.keys(DATA||{});
+  if(!have.length){
+    document.body.innerHTML = "<div class='wrap'><header><h1>No data yet</h1>"
+      + "<p class='lede'>Run <code>jma_snowfall.py fetch</code>, then <code>daily</code>, "
+      + "then <code>build</code>.</p></header></div>";
+    return;
+  }
+  buildPicker();
+  buildDateControls();
+  // Open on three resorts in registry order, skipping any that would repeat a
+  // station already chosen -- two identical rows reads as a bug, not a fact.
+  const seenStation = new Set();
+  outer:
+  for(const country in GROUPS)
+    for(const area in GROUPS[country])
+      for(const k of GROUPS[country][area]){
+        if(!have.includes(k)) continue;
+        const id = DATA[k].daily;
+        if(id && seenStation.has(id)) continue;
+        if(id) seenStation.add(id);
+        picked.push(k);
+        if(picked.length === 3) break outer;
+      }
+  el("foot").innerHTML =
+    "Source: Japan Meteorological Agency, 過去の気象データ検索 "
+    + "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>). New snow is "
+    + "降雪の深さ日合計, base depth is 最深積雪, both measured daily at the station nearest "
+    + "each resort. Stations sit in the valley town rather than on the mountain, so treat "
+    + "these as a reliable guide to which dates are better and a conservative floor on what "
+    + "falls up the hill. Nothing here is a forecast.";
+  refresh();
+}
+boot();
+</script>
+</body>
+</html>

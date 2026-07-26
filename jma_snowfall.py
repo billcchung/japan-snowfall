@@ -60,60 +60,41 @@ PREC = {
     67: "広島県", 68: "島根県", 69: "鳥取県",
 }
 
-# resort -> the JMA station that best represents it.
-# Second element is the region code, third is a note on the elevation gap.
-RESORTS = {
-    # --- Hokkaido ---
-    "niseko":            ("倶知安", 16, "Valley town station below the Hirafu base"),
-    "niseko-annupuri":   ("蘭越", 16, "Rankoshi 40m; west side of the same massif"),
-    "rusutsu":           ("喜茂別", 16, "Kimobetsu 130m; Rusutsu base ~400m"),
-    "kiroro":            ("赤井川", 16, "Akaigawa 220m; Kiroro base 570m, top 1180m"),
-    "sapporo":           ("札幌", 14, "Sapporo 17m; Teine and Kokusai sit far above the city"),
-    "furano":            ("富良野", 12, "Furano 173m; resort base 235m, top 1074m"),
-    "tomamu":            ("占冠", 12, "Shimukappu 250m; Tomamu base 545m"),
-    "asahidake":         ("旭川", 12, "Asahikawa 120m; Asahidake ropeway base 1100m — big gap"),
-    "sahoro":            ("新得", 20, "Shintoku 177m; Sahoro base 480m"),
-    "kamui":             ("旭川", 12, "Asahikawa 120m; Kamui Ski Links base 250m"),
-    # --- Tohoku ---
-    "hakkoda":           ("酸ケ湯", 31, "Sukayu 890m — on-mountain, Japan's deepest snowpack station"),
-    "appi":              ("荒屋", 33, "Araya 320m; Appi base 500m"),
-    "geto":              ("湯田", 33, "Yuda 235m; Geto Kogen base 430m"),
-    "zao":               ("山形", 35, "Yamagata 153m; Zao base 780m — large gap, city undercounts"),
-    "ani":               ("阿仁合", 32, "Aniai 90m; Ani base 200m"),
-    "aomori-spring":     ("鰺ケ沢", 31, "Ajigasawa 40m; resort base 200m"),
-    "nekoma-alts":       ("猪苗代", 36, "Inawashiro 514m; Nekoma and Alts sit above"),
-    # --- Niigata / Nagano ---
-    "myoko":             ("関山", 54, "Sekiyama 350m; Akakura base 450m"),
-    "lotte-arai":        ("新井", 54, "Arai 40m; resort base 330m"),
-    "nozawa":            ("野沢温泉", 48, "Nozawa Onsen 570m; village-level station, top 1650m"),
-    "madarao":           ("飯山", 48, "Iiyama 313m; Madarao base 1000m"),
-    "hakuba":            ("白馬", 48, "Hakuba 703m; Happo base 760m — unusually well matched"),
-    "hakuba-north":      ("小谷", 48, "Otari 520m; Tsugaike and Cortina bases 800-900m"),
-    "shiga-kogen":       ("野沢温泉", 48, "PROXY ONLY. No Shiga station; Shiga base is 1300-2300m"),
-    "yuzawa":            ("湯沢", 54, "Yuzawa 240m; Gala/Ishiuchi/Naeba/Kagura all draw from here"),
-    "itoigawa":          ("糸魚川", 54, "Itoigawa 3m; Charmant Hiuchi base 400m"),
-    # --- Gunma / Tochigi / Gifu ---
-    "minakami":          ("藤原", 42, "Fujiwara 700m; Tanigawadake and Hodaira above"),
-    "nasu":              ("那須高原", 41, "Nasu Kogen 749m"),
-    "takasu":            ("長滝", 52, "Nagataki 470m; Takasu and Dynaland bases 900m+"),
-}
+REGISTRY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "resorts.json")
+
+
+def load_registry():
+    """Every resort the site knows about, across all countries and sources.
+
+    This file, not the table below, is the source of truth. Adding a country
+    means adding entries with a different `source` plus a fetcher that writes
+    the same CSV shape -- no change to this module.
+    """
+    with open(REGISTRY_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+REGISTRY = load_registry()
+
+# The subset this module can fetch, in the shape the JMA code already uses:
+# resort -> (station name, region code, elevation-gap note).
+RESORTS = {k: (v["station"]["name_ja"], v["station"]["prec_no"], v["note"])
+           for k, v in REGISTRY.items() if v["source"] == "jma"}
 
 MONTH_COLS = ["jan", "feb", "mar", "apr", "may", "jun", "jul",
               "aug", "sep", "oct", "nov", "dec"]
 
-# Coarse grouping for the resort picker, in display order.
-AREAS = ["Hokkaido", "Tohoku", "Niigata & Nagano", "Elsewhere"]
+def grouping():
+    """Country -> areas -> resort keys, in registry order.
 
-
-def area_for(prec_no):
-    p = int(prec_no)
-    if 11 <= p <= 24:
-        return "Hokkaido"
-    if 31 <= p <= 36:
-        return "Tohoku"
-    if p in (48, 54):
-        return "Niigata & Nagano"
-    return "Elsewhere"
+    Drives the picker on both pages. Registry order is display order, so
+    reordering resorts.json reorders the site.
+    """
+    tree = {}
+    for k, v in REGISTRY.items():
+        tree.setdefault(v["country"], {}).setdefault(v["area"], []).append(k)
+    return tree
 
 
 # --------------------------------------------------------------------------
@@ -553,11 +534,14 @@ def build():
         key = rows[0]["resort"]
         st = index.get(f"{rows[0]['prec_no']}:{rows[0]['station_ja']}", {})
         meta = ref.get(key, {})
+        meta_reg = REGISTRY.get(key, {})
         payload[key] = {
             "station_ja": rows[0]["station_ja"],
             "station_m": st.get("elevation_m"),
+            "name": meta_reg.get("name", key),
+            "country": meta_reg.get("country", ""),
+            "area": meta_reg.get("area", ""),
             "region": st.get("region") or PREC.get(int(rows[0]["prec_no"]), ""),
-            "area": area_for(rows[0]["prec_no"]),
             # Station-level daily file, fetched on demand by the planner.
             # Keyed by station so 旭川 is downloaded once for both resorts.
             "daily": (f"{rows[0]['prec_no']}-{rows[0]['block_no']}"
@@ -577,15 +561,34 @@ def build():
                 "i": int(r.get("incomplete") or 0),
             } for r in rows],
         }
-    tpl = os.path.join(os.path.dirname(os.path.abspath(__file__)), "template.html")
-    with open(tpl, encoding="utf-8") as f:
-        html = f.read()
-    html = html.replace("/*__DATA__*/null",
-                        json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
-    with open(out, "w", encoding="utf-8") as f:
-        f.write(html)
-    print(f"{len(payload)} resorts -> {out}")
+    here = os.path.dirname(os.path.abspath(__file__))
+    # Only advertise countries and areas that actually have data, so an empty
+    # heading never appears for resorts that have not been fetched yet.
+    tree = {}
+    for country, areas in grouping().items():
+        for area, keys in areas.items():
+            have = [k for k in keys if k in payload]
+            if have:
+                tree.setdefault(country, {})[area] = have
+    blobs = {
+        "/*__DATA__*/null": json.dumps(payload, ensure_ascii=False,
+                                       separators=(",", ":")),
+        "/*__GROUPS__*/null": json.dumps(tree, ensure_ascii=False,
+                                         separators=(",", ":")),
+        "/*__TOTAL__*/0": str(len(REGISTRY)),
+    }
+    for tpl_name, out_name in (("template.html", "index.html"),
+                               ("plan-template.html", "plan.html")):
+        tpl = os.path.join(here, tpl_name)
+        if not os.path.exists(tpl):
+            continue
+        with open(tpl, encoding="utf-8") as f:
+            html = f.read()
+        for token, blob in blobs.items():
+            html = html.replace(token, blob)
+        with open(os.path.join(here, out_name), "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"{len(payload)} resorts -> {out_name}")
 
 
 # --------------------------------------------------------------------------
