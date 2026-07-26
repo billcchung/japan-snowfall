@@ -83,7 +83,7 @@ table.cmp tr:hover td{color:var(--ice)}
 table.cmp tr.top td.big{color:#fff;font-weight:600}
 
 /* ---------- charts ---------- */
-.chart{margin:0 0 4px;overflow-x:auto}
+.chart{margin:0 0 4px;overflow-x:auto;position:relative}
 .chart svg{display:block;width:100%;min-width:560px;height:auto}
 .chart .axis{fill:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:.08em}
 .chart .grid{stroke:var(--edge);stroke-width:1}
@@ -92,6 +92,21 @@ table.cmp tr.top td.big{color:#fff;font-weight:600}
 .chart .bandedge{fill:none;stroke-width:1}
 .chart .now{fill:none;stroke:var(--ice);stroke-width:1.5}
 .chart .dot{stroke:none}
+.chart .guide{stroke:var(--edge2);stroke-width:1}
+.chart .hit{stroke:var(--void);stroke-width:1.5}
+.tip{
+  position:absolute;top:8px;left:0;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--void);border:1px solid var(--edge2);padding:8px 10px;border-radius:2px;
+  font-family:var(--mono);font-size:11px;color:var(--mute);white-space:nowrap;z-index:2;
+  box-shadow:0 6px 20px rgba(0,0,0,.55)
+}
+.tip b{display:block;color:var(--ice);font-weight:600;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:6px}
+.tip span{display:flex;align-items:center;gap:8px;line-height:1.9}
+.tip i{width:8px;height:8px;flex:0 0 auto}
+.tip em{margin-left:auto;padding-left:16px;font-style:normal;color:var(--ice);
+  font-variant-numeric:tabular-nums}
+.tip u{display:block;text-decoration:none;color:var(--dim);font-size:10px;text-align:right}
 .key{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0 0}
 .key button{
   display:flex;align-items:center;gap:8px;background:none;border:0;padding:3px 0;
@@ -179,6 +194,8 @@ table.cmp tr.off td{opacity:.4}
   <div class="chart" id="scan"></div>
   <div class="keybar">
     <div class="key" id="key"></div>
+    <button type="button" class="toggle" id="showall">Show all</button>
+    <button type="button" class="toggle" id="hideall">Hide all</button>
     <button type="button" class="toggle" id="bands" aria-pressed="true">Spread</button>
   </div>
 </section>
@@ -320,6 +337,8 @@ function buildPicker(){
       nav.appendChild(g);
     }
   }
+  el("showall").onclick = () => { hidden.clear(); refresh(); };
+  el("hideall").onclick = () => { picked.forEach(k => hidden.add(k)); refresh(); };
   el("bands").onclick = () => {
     showBands = !showBands;
     el("bands").setAttribute("aria-pressed", showBands);
@@ -419,10 +438,9 @@ function axes(W,H,P,maxv,Xof){
   return g;
 }
 
-function svgScan(series, a){
+function svgScan(series, a, L){
   const W=760, H=250, P={l:46,r:14,t:14,b:28};
   const iw=W-P.l-P.r, ih=H-P.t-P.b;
-  // With bands on, the 90th percentile sets the ceiling; without, the means do.
   const maxv = Math.max(1, ...series.flatMap(s => s.curve.map(c => showBands ? c.p90 : c.mean)));
   // Thin the fills as more resorts stack up, so three reads rich and six
   // still reads at all.
@@ -430,7 +448,6 @@ function svgScan(series, a){
   const edgeOp = Math.max(0.28, 0.55 / Math.pow(Math.max(1,series.length), 0.30));
   const X = s => P.l + (s/(NDAYS-1))*iw;
   const Y = v => P.t + ih - (Math.min(v,maxv)/maxv)*ih;
-  const path = (curve,k) => curve.map(p => X(p.start).toFixed(1)+","+Y(p[k]).toFixed(1)).join(" ");
   // The envelope is jagged because each start date draws on only ~20 seasons;
   // that wobble is sampling noise, not weather. Smooth the band edges for
   // legibility and leave the mean line exact, so the peak stays honest.
@@ -440,6 +457,7 @@ function svgScan(series, a){
     return {start:curve[i].start, v:t/n};
   });
   const vpath = pts => pts.map(p => X(p.start).toFixed(1)+","+Y(p.v).toFixed(1)).join(" ");
+  const path = (curve,k) => curve.map(p => X(p.start).toFixed(1)+","+Y(p[k]).toFixed(1)).join(" ");
   let body = axes(W,H,P,maxv,X);
 
   // Every band first, so no fill ever sits on top of a mean line. The fills
@@ -462,19 +480,41 @@ function svgScan(series, a){
     body += `<polyline class="ln" stroke="${s.colour}" points="${path(s.curve,"mean")}"/>`;
     const pk = s.curve.reduce((x,y) => y.mean>x.mean?y:x, s.curve[0]);
     if(pk) body += `<circle class="dot" fill="${s.colour}" cx="${X(pk.start).toFixed(1)}" `
-      + `cy="${Y(pk.mean).toFixed(1)}" r="3.5"><title>${s.name} peaks here</title></circle>`;
+      + `cy="${Y(pk.mean).toFixed(1)}" r="3.5"/>`;
   });
   body += `<line class="now" x1="${X(a).toFixed(1)}" y1="${P.t}" x2="${X(a).toFixed(1)}" y2="${P.t+ih}"/>`;
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date, with the range each resort delivers">${body}</svg>`;
+  body += `<line class="guide" x1="0" y1="${P.t}" x2="0" y2="${P.t+ih}" opacity="0"/>`;
+  series.forEach(s => { body += `<circle class="hit" r="3.5" fill="${s.colour}" opacity="0"/>`; });
+
+  const byStart = series.map(s => { const m = new Map();
+    s.curve.forEach(c => m.set(c.start, c)); return m; });
+  const allStarts = series.flatMap(s => s.curve.map(c => c.start));
+  const lo = Math.min(...allStarts), hi = Math.max(...allStarts);
+  const model = {W, Y, at(xv){
+    let st = Math.round((xv - P.l)/iw*(NDAYS-1));
+    st = Math.max(lo, Math.min(hi, st));
+    const rows = [];
+    series.forEach((ser,i) => {
+      const c = byStart[i].get(st);
+      if(c) rows.push({name:ser.name, colour:ser.colour, y:Y(c.mean),
+                       value:Math.round(c.mean)+"cm",
+                       extra:Math.round(c.p10)+"–"+Math.round(c.p90)+"cm"});
+    });
+    if(!rows.length) return null;
+    const d1 = fromOrd(st), d2 = fromOrd(Math.min(NDAYS-1, st+L-1));
+    return {x:X(st), label:dateLabel(d1.m,d1.d)+" – "+dateLabel(d2.m,d2.d), rows};
+  }};
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date, with the range each resort delivers">${body}</svg>`, model};
 }
 
 function svgYoY(series){
   const W=760, H=210, P={l:46,r:14,t:14,b:28};
   const iw=W-P.l-P.r, ih=H-P.t-P.b;
   const years = [...new Set(series.flatMap(s => s.allRows.map(r => r.y)))].sort((a,b)=>a-b);
-  if(!years.length) return "";
+  if(!years.length) return {svg:"", model:null};
   const maxv = Math.max(1, ...series.flatMap(s => s.allRows.map(r => r.total)));
-  const X = y => P.l + ((y - years[0])/Math.max(1, years[years.length-1]-years[0]))*iw;
+  const span = Math.max(1, years[years.length-1]-years[0]);
+  const X = y => P.l + ((y - years[0])/span)*iw;
   const Y = v => P.t + ih - (v/maxv)*ih;
   let g = "";
   [0,0.5,1].forEach(f => { const v=maxv*f, y=P.t+ih-(f*ih);
@@ -494,7 +534,67 @@ function svgYoY(series){
       + `x1="${X(s.allRows[0].y).toFixed(1)}" y1="${Y(Math.max(0,icpt)).toFixed(1)}" `
       + `x2="${X(s.allRows[n-1].y).toFixed(1)}" y2="${Y(Math.max(0,icpt+slope*(n-1))).toFixed(1)}"/>`;
   });
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Snowfall in the chosen window, season by season">${g}</svg>`;
+  g += `<line class="guide" x1="0" y1="${P.t}" x2="0" y2="${P.t+ih}" opacity="0"/>`;
+  series.forEach(s => { g += `<circle class="hit" r="3.5" fill="${s.colour}" opacity="0"/>`; });
+
+  const byYear = series.map(s => { const m = new Map();
+    s.allRows.forEach(r => m.set(r.y, r)); return m; });
+  const model = {W, Y, at(xv){
+    let yv = Math.round(years[0] + (xv - P.l)/iw*span);
+    yv = Math.max(years[0], Math.min(years[years.length-1], yv));
+    const rows = [];
+    series.forEach((ser,i) => {
+      const r = byYear[i].get(yv);
+      if(r) rows.push({name:ser.name, colour:ser.colour, y:Y(r.total),
+                       value:Math.round(r.total)+"cm",
+                       extra:r.powder + (r.powder===1?" powder day":" powder days")});
+    });
+    if(!rows.length) return null;
+    return {x:X(yv), label:"Season "+seasonLabel(yv), rows};
+  }};
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Snowfall in the chosen window, season by season">${g}</svg>`, model};
+}
+
+/* Read the value under the pointer. The SVG scales to its container, so
+   client pixels are converted back to viewBox units before lookup. */
+function attachHover(host, model){
+  const svg = host.querySelector("svg");
+  if(!svg || !model) return;
+  let tip = host.querySelector(".tip");
+  if(!tip){ tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip); }
+  const guide = svg.querySelector(".guide");
+  const dots = [...svg.querySelectorAll(".hit")];
+  const hide = () => {
+    tip.style.opacity = "0";
+    if(guide) guide.setAttribute("opacity","0");
+    dots.forEach(d => d.setAttribute("opacity","0"));
+  };
+  hide();
+  const move = pt => {
+    const r = svg.getBoundingClientRect();
+    if(!r.width) return;
+    const hit = model.at((pt.clientX - r.left) / r.width * model.W);
+    if(!hit) return hide();
+    if(guide){ guide.setAttribute("opacity","1");
+      guide.setAttribute("x1", hit.x.toFixed(1)); guide.setAttribute("x2", hit.x.toFixed(1)); }
+    dots.forEach((d,i) => {
+      const row = hit.rows[i];
+      if(!row){ d.setAttribute("opacity","0"); return; }
+      d.setAttribute("opacity","1");
+      d.setAttribute("cx", hit.x.toFixed(1)); d.setAttribute("cy", row.y.toFixed(1));
+    });
+    tip.innerHTML = `<b>${hit.label}</b>` + hit.rows.map(row =>
+      `<span><i style="background:${row.colour}"></i>${row.name}<em>${row.value}`
+      + (row.extra ? `<u>${row.extra}</u>` : "") + `</em></span>`).join("");
+    tip.style.opacity = "1";
+    const px = hit.x / model.W * r.width;
+    const w = tip.offsetWidth;
+    tip.style.left = Math.max(4, Math.min(px + 14, r.width - w - 4)) + "px";
+  };
+  svg.addEventListener("mousemove", e => move(e));
+  svg.addEventListener("mouseleave", hide);
+  svg.addEventListener("touchstart", e => { if(e.touches[0]) move(e.touches[0]); }, {passive:true});
+  svg.addEventListener("touchmove", e => { if(e.touches[0]) move(e.touches[0]); }, {passive:true});
 }
 
 /* ---------- main ---------- */
@@ -551,8 +651,7 @@ async function refresh(){
   });
   const ranked = [...series].sort((x,y) => y.med - x.med);
   // Charts honour the key toggles; the table keeps every pick, dimmed.
-  const shown = series.filter(s => !hidden.has(s.k));
-  const vis = shown.length ? shown : series;
+  const vis = series.filter(s => !hidden.has(s.k));
 
   // ---- table ----
   el("cmp").tHead.innerHTML = "<tr><th>Resort</th><th>Typical</th><th>Usual range</th>"
@@ -606,7 +705,8 @@ async function refresh(){
   el("verdict").innerHTML = v;
 
   // ---- charts ----
-  el("scan").innerHTML = svgScan(vis, a);
+  // Rendered before the empty-state bail: without the key there is no way
+  // back from Hide all.
   el("key").innerHTML = series.map(s =>
     `<button type="button" data-k="${s.k}" aria-pressed="${!hidden.has(s.k)}">`
     + `<i style="background:${s.colour}"></i>${s.name}</button>`).join("");
@@ -617,13 +717,24 @@ async function refresh(){
       refresh();
     };
   });
+
+  if(!vis.length){
+    el("scan").innerHTML = ""; el("yoy").innerHTML = "";
+    el("scanhint").innerHTML = `<span class="nodaily">Every resort is hidden. `
+      + `Use Show all, or click a name in the key.</span>`;
+    el("yoyhint").textContent = "";
+    return;
+  }
+  const scan = svgScan(vis, a, L);
+  el("scan").innerHTML = scan.svg;
+  attachHover(el("scan"), scan.model);
   const steadiest = [...vis].sort((x,y) => x.cv - y.cv)[0];
   const swingiest = [...vis].sort((x,y) => y.cv - x.cv)[0];
   el("scanhint").innerHTML = `The solid line is average snowfall for a ${L}-day trip starting `
     + `on each date; the dot is that resort's best window and the white line is your start `
     + `date. The shaded band around each line runs from the 10th to the 90th percentile — `
     + `a fat band means that window is a lottery, a tight one means it turns up reliably. `
-    + `Click a resort in the key to hide it, or turn the bands off.`
+    + `Hover the chart for exact figures.`
     + (vis.length > 1
         ? ` Over your dates <b>${steadiest.name}</b> is the most dependable, swinging `
           + `${Math.round(steadiest.cv)}% of a typical season, against `
@@ -632,10 +743,12 @@ async function refresh(){
 
   const yseries = vis.filter(s => s.allRows.length >= 5);
   if(yseries.length){
-    el("yoy").innerHTML = svgYoY(yseries);
+    const yoy = svgYoY(yseries);
+    el("yoy").innerHTML = yoy.svg;
+    attachHover(el("yoy"), yoy.model);
     el("yoyhint").innerHTML = `Your dates in every season on record. The solid line is each `
       + `season's total — its jaggedness is the year-to-year variability — and the dashed `
-      + `line is that resort's linear trend.`;
+      + `line is that resort's linear trend. Hover for a season's exact total.`;
   }else{ el("yoy").innerHTML = ""; el("yoyhint").textContent = ""; }
 }
 
