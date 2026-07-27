@@ -31,12 +31,28 @@ h1 .ja{display:inline;font-size:.5em;font-weight:500;color:var(--mute);
 
 /* ---------- resort picker ---------- */
 .picker{margin:26px 0 8px}
-.pgroup{display:block;margin-bottom:6px;position:relative}
+.pgroup{display:block;margin-bottom:6px}
+.pgrow{display:flex;align-items:center}
+/* Tri-state region selector: empty, part-filled, filled. Sits beside the
+   caret rather than floating over the header rule. */
+.pgsel{
+  flex:0 0 auto;background:none;border:0;padding:6px 9px 6px 0;
+  cursor:pointer;line-height:0
+}
+.pgsel i{
+  display:block;width:11px;height:11px;border:1px solid var(--edge2);
+  position:relative;background:transparent;transition:.12s
+}
+.pgsel:hover i{border-color:var(--ice)}
+.pgsel:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
+.pgsel[data-state=all] i{background:var(--ice);border-color:var(--ice)}
+.pgsel[data-state=some] i{border-color:var(--mute)}
+.pgsel[data-state=some] i::after{content:"";position:absolute;inset:2px;background:var(--mute)}
 .pghead{
-  display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;
+  display:flex;align-items:center;gap:9px;flex:1;background:none;border:0;
   padding:5px 0;cursor:pointer;text-align:left;
   font-family:var(--mono);font-size:10px;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--mute);padding-right:82px
+  text-transform:uppercase;color:var(--mute)
 }
 .pghead:hover{color:var(--ice)}
 .pghead:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
@@ -44,24 +60,18 @@ h1 .ja{display:inline;font-size:.5em;font-weight:500;color:var(--mute);
 .pghead[aria-expanded=true] .caret{transform:rotate(90deg)}
 .pghead .n{color:var(--dim);letter-spacing:.06em;font-size:9px}
 .pghead .rule{flex:1;height:1px;background:var(--edge)}
+.pgroup[data-open=false] .pgbody{display:none}
 .pgbody{display:flex;flex-wrap:wrap;gap:7px;padding:4px 0 10px}
-/* .pgacts sits between the header and the body, so this needs ~ not +. */
-.pghead[aria-expanded=false] ~ .pgbody{display:none}
-.pgacts{position:absolute;top:3px;right:0;display:flex;gap:12px}
-.pgacts button{
-  background:none;border:0;padding:2px 0;cursor:pointer;color:var(--dim);
-  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase
-}
-.pgacts button:hover{color:var(--ice)}
-.pgacts button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
-.picker button{
+/* Resort buttons only. `.picker button` would outrank .pghead and .pgsel on
+   specificity and give the region header a border and padding. */
+.pgbody button{
   font-family:var(--mono);font-size:12px;letter-spacing:.04em;
   background:transparent;color:var(--mute);border:1px solid var(--edge);
   padding:7px 12px;border-radius:2px;cursor:pointer;transition:.14s
 }
-.picker button:hover{border-color:var(--edge2);color:var(--ice)}
-.picker button[aria-pressed=true]{background:var(--ice);color:var(--void);border-color:var(--ice);font-weight:600}
-.picker button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
+.pgbody button:hover{border-color:var(--edge2);color:var(--ice)}
+.pgbody button[aria-pressed=true]{background:var(--ice);color:var(--void);border-color:var(--ice);font-weight:600}
+.pgbody button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 tr.partial .sea abbr{border:0;text-decoration:none;color:var(--s3);cursor:help;padding-left:2px}
 
 .station{

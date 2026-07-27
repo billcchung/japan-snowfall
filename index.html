@@ -140,27 +140,34 @@ function boot(){
       if(!ks.length) continue;
       const g = document.createElement("div");
       g.className = "pgroup";
-      const open = firstArea;
+      g.dataset.open = firstArea;
       firstArea = false;
+      const row = document.createElement("div");
+      row.className = "pgrow";
       const head = document.createElement("button");
       head.type = "button";
       head.className = "pghead";
-      head.setAttribute("aria-expanded", open);
+      head.setAttribute("aria-expanded", g.dataset.open);
       head.innerHTML = `<span class="caret">\u25B6</span>`
         + `<span>${multiCountry ? country + " \u00b7 " : ""}${area}</span>`
         + `<span class="n">${ks.length}</span><span class="rule"></span>`;
-      head.onclick = () =>
-        head.setAttribute("aria-expanded", head.getAttribute("aria-expanded") !== "true");
+      head.onclick = () => {
+        const open = g.dataset.open !== "true";
+        g.dataset.open = open;
+        head.setAttribute("aria-expanded", open);
+      };
+      row.appendChild(head);
       const body = document.createElement("div");
       body.className = "pgbody";
       ks.forEach(k => {
-        const b = document.createElement("button");
-        b.textContent = nameOf(k); b.dataset.k = k;
-        b.setAttribute("aria-pressed","false");
-        b.onclick = () => select(k);
-        body.appendChild(b);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = nameOf(k); btn.dataset.k = k;
+        btn.setAttribute("aria-pressed","false");
+        btn.onclick = () => select(k);
+        body.appendChild(btn);
       });
-      g.append(head, body);
+      g.append(row, body);
       nav.appendChild(g);
     }
   }

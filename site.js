@@ -121,17 +121,47 @@ function buildPicker(){
       g.className = "pgroup";
       // Open the first area and any area holding a selection; collapse the
       // rest, so adding regions does not push the controls off the screen.
-      const open = firstArea || ks.some(k => picked.includes(k));
+      g.dataset.open = firstArea || ks.some(k => picked.includes(k));
+      g.dataset.keys = ks.join(",");
       firstArea = false;
+
+      const row = document.createElement("div");
+      row.className = "pgrow";
+
+      // Tri-state: empty, part-filled, filled. Clicking selects the whole
+      // region, or clears it when it is already fully selected.
+      let sel = null;
+      if(multi){
+        sel = document.createElement("button");
+        sel.type = "button";
+        sel.className = "pgsel";
+        sel.innerHTML = "<i></i>";
+        sel.onclick = () => {
+          const all = ks.every(k => picked.includes(k));
+          if(all) picked = picked.filter(k => !ks.includes(k));
+          else {
+            ks.forEach(k => { if(!picked.includes(k)) picked.push(k); });
+            g.dataset.open = "true";     // show what was just picked
+          }
+          renderPage();
+        };
+        row.appendChild(sel);
+      }
+
       const head = document.createElement("button");
       head.type = "button";
       head.className = "pghead";
-      head.setAttribute("aria-expanded", open);
+      head.setAttribute("aria-expanded", g.dataset.open);
       head.innerHTML = `<span class="caret">\u25B6</span>`
         + `<span>${multiCountry ? country + " \u00b7 " : ""}${area}</span>`
         + `<span class="n">${ks.length}</span><span class="rule"></span>`;
-      head.onclick = () =>
-        head.setAttribute("aria-expanded", head.getAttribute("aria-expanded") !== "true");
+      head.onclick = () => {
+        const open = g.dataset.open !== "true";
+        g.dataset.open = open;
+        head.setAttribute("aria-expanded", open);
+      };
+      row.appendChild(head);
+
       const body = document.createElement("div");
       body.className = "pgbody";
       ks.forEach(k => {
@@ -143,27 +173,7 @@ function buildPicker(){
         btn.onclick = () => toggle(k);
         body.appendChild(btn);
       });
-      g.append(head);
-      if(multi){
-        const acts = document.createElement("span");
-        acts.className = "pgacts";
-        const all = document.createElement("button");
-        all.type = "button"; all.textContent = "All";
-        all.onclick = () => {
-          ks.forEach(k => { if(!picked.includes(k)) picked.push(k); });
-          head.setAttribute("aria-expanded", "true");   // show what was just picked
-          renderPage();
-        };
-        const none = document.createElement("button");
-        none.type = "button"; none.textContent = "None";
-        none.onclick = () => {
-          picked = picked.filter(k => !ks.includes(k));
-          renderPage();
-        };
-        acts.append(all, none);
-        g.append(acts);
-      }
-      g.append(body);
+      g.append(row, body);
       nav.appendChild(g);
     }
   }
@@ -171,7 +181,7 @@ function buildPicker(){
   el("clear").onclick = () => { picked = []; renderPage(); };
   const areaAll = el("area-all");
   if(areaAll) areaAll.onclick = () => {
-    nav.querySelectorAll('.pghead[aria-expanded=true] ~ .pgbody button').forEach(b => {
+    nav.querySelectorAll('.pgroup[data-open=true] .pgbody button').forEach(b => {
       if(!picked.includes(b.dataset.k)) picked.push(b.dataset.k);
     });
     renderPage();
@@ -191,6 +201,16 @@ function paintPicker(){
     const c = i > -1 ? colourOf(i, picked.length) : "";
     b.style.setProperty("--swatch", c);
     b.style.color = c;
+  });
+  document.querySelectorAll(".pgroup").forEach(g => {
+    const box = g.querySelector(".pgsel");
+    if(!box) return;
+    const ks = g.dataset.keys ? g.dataset.keys.split(",") : [];
+    const n = ks.filter(k => picked.includes(k)).length;
+    box.dataset.state = n === 0 ? "none" : n === ks.length ? "all" : "some";
+    box.setAttribute("aria-label",
+      (n === ks.length ? "Clear all " : "Select all ") + ks.length + " resorts in this area");
+    box.setAttribute("aria-checked", n === 0 ? "false" : n === ks.length ? "true" : "mixed");
   });
   el("count").textContent = picked.length
     ? picked.length + " selected" : "none selected";
