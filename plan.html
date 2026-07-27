@@ -100,21 +100,21 @@ table.cmp tr.top td.big{color:#fff;font-weight:600}
 }
 .tip b{display:block;color:var(--ice);font-weight:600;font-size:10px;letter-spacing:.1em;
   text-transform:uppercase;margin-bottom:6px}
-.tip span{display:flex;align-items:center;gap:8px;line-height:1.9}
+.tip span{display:flex;align-items:center;gap:8px;line-height:1.55}
 .tip i{width:8px;height:8px;flex:0 0 auto}
-.tip em{margin-left:auto;padding-left:16px;font-style:normal;color:var(--ice);
-  font-variant-numeric:tabular-nums}
-.tip u{display:block;text-decoration:none;color:var(--dim);font-size:10px;text-align:right}
-.key{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0 0}
+.tip em{margin-left:auto;padding-left:18px;font-style:normal;color:var(--ice);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.tip u{display:inline;text-decoration:none;color:var(--dim);font-size:10px;margin-left:9px}
+.key{display:flex;flex-wrap:wrap;gap:0 14px;margin:10px 0 0}
 .key button{
-  display:flex;align-items:center;gap:8px;background:none;border:0;padding:3px 0;
-  cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
-  color:var(--mute)
+  display:flex;align-items:center;gap:6px;background:none;border:0;padding:1px 0;
+  cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  line-height:1.5;color:var(--mute)
 }
 .key button:hover{color:var(--ice)}
 .key button[aria-pressed=false]{color:var(--dim);text-decoration:line-through}
 .key button[aria-pressed=false] i{opacity:.28}
-.key i{width:14px;height:3px;display:block;flex:0 0 auto}
+.key i{width:11px;height:2px;display:block;flex:0 0 auto}
 .key button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 
 table.cmp tr.off td{opacity:.4}
@@ -278,11 +278,12 @@ function svgScan(series, a, L, scaleFrom){
     const rows = [];
     series.forEach((ser,i) => {
       const c = byStart[i].get(st);
-      if(c) rows.push({name:ser.name, colour:ser.colour, y:Y(c.mean),
+      if(c) rows.push({name:ser.name, colour:ser.colour, y:Y(c.mean), sort:c.mean,
                        value:Math.round(c.mean)+"cm",
                        extra:Math.round(c.p10)+"–"+Math.round(c.p90)+"cm"});
     });
     if(!rows.length) return null;
+    rows.sort((x,y) => y.sort - x.sort);   // best first at this start date
     const d1 = fromOrd(st), d2 = fromOrd(Math.min(NDAYS-1, st+L-1));
     return {x:X(st), label:dateLabel(d1.m,d1.d)+" – "+dateLabel(d2.m,d2.d), rows};
   }};

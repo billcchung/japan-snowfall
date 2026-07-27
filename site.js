@@ -300,10 +300,13 @@ function attachHover(host, model){
     if(!hit) return hide();
     if(guide){ guide.setAttribute("opacity","1");
       guide.setAttribute("x1", hit.x.toFixed(1)); guide.setAttribute("x2", hit.x.toFixed(1)); }
+    // Rows arrive sorted by value, so each dot takes its colour from its row --
+    // the fill baked in at creation follows series order and would desync.
     dots.forEach((d,i) => {
       const row = hit.rows[i];
       if(!row){ d.setAttribute("opacity","0"); return; }
       d.setAttribute("opacity","1");
+      d.setAttribute("fill", row.colour);
       d.setAttribute("cx", hit.x.toFixed(1)); d.setAttribute("cy", row.y.toFixed(1));
     });
     tip.innerHTML = `<b>${hit.label}</b>` + hit.rows.map(row =>

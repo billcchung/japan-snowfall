@@ -100,21 +100,21 @@ table.cmp tr.top td.big{color:#fff;font-weight:600}
 }
 .tip b{display:block;color:var(--ice);font-weight:600;font-size:10px;letter-spacing:.1em;
   text-transform:uppercase;margin-bottom:6px}
-.tip span{display:flex;align-items:center;gap:8px;line-height:1.9}
+.tip span{display:flex;align-items:center;gap:8px;line-height:1.55}
 .tip i{width:8px;height:8px;flex:0 0 auto}
-.tip em{margin-left:auto;padding-left:16px;font-style:normal;color:var(--ice);
-  font-variant-numeric:tabular-nums}
-.tip u{display:block;text-decoration:none;color:var(--dim);font-size:10px;text-align:right}
-.key{display:flex;flex-wrap:wrap;gap:6px 18px;margin:12px 0 0}
+.tip em{margin-left:auto;padding-left:18px;font-style:normal;color:var(--ice);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.tip u{display:inline;text-decoration:none;color:var(--dim);font-size:10px;margin-left:9px}
+.key{display:flex;flex-wrap:wrap;gap:0 14px;margin:10px 0 0}
 .key button{
-  display:flex;align-items:center;gap:8px;background:none;border:0;padding:3px 0;
-  cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.08em;
-  color:var(--mute)
+  display:flex;align-items:center;gap:6px;background:none;border:0;padding:1px 0;
+  cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+  line-height:1.5;color:var(--mute)
 }
 .key button:hover{color:var(--ice)}
 .key button[aria-pressed=false]{color:var(--dim);text-decoration:line-through}
 .key button[aria-pressed=false] i{opacity:.28}
-.key i{width:14px;height:3px;display:block;flex:0 0 auto}
+.key i{width:11px;height:2px;display:block;flex:0 0 auto}
 .key button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 
 table.cmp tr.off td{opacity:.4}
@@ -254,12 +254,12 @@ function svgYoY(series, scaleFrom, L){
     const rows = [];
     series.forEach((ser,i) => {
       const r = byYear[i].get(yv);
-      if(r) rows.push({name:ser.name, colour:ser.colour, y:Y(val(r)),
+      if(r) rows.push({name:ser.name, colour:ser.colour, y:Y(val(r)), sort:val(r),
                        value: Math.round(val(r)) + unit.replace("cm",""),
-                       extra: Math.round(r.total) + "cm over the window · "
-                              + r.powder + (r.powder===1?" powder day":" powder days")});
+                       extra: Math.round(r.total) + "cm total"});
     });
     if(!rows.length) return null;
+    rows.sort((x,y) => y.sort - x.sort);   // snowiest first that season
     return {x:X(yv), label:"Season "+seasonLabel(yv), rows};
   }};
   return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Snowfall in the chosen window, season by season">${g}</svg>`, model};
