@@ -200,6 +200,24 @@ table.cmp tr.off td{opacity:.4}
   <div class="tablewrap"><table class="cmp" id="cmp"><thead></thead><tbody></tbody></table></div>
 </section>
 
+<section>
+  <h2>Day by day</h2>
+  <p class="hint" id="dayhint"></p>
+  <div class="chart" id="day"></div>
+  <div class="keybar">
+    <button type="button" class="toggle" id="dayunit" aria-pressed="false">Show base depth</button>
+  </div>
+</section>
+
+<section>
+  <h2>Where these numbers come from</h2>
+  <p class="hint">Every figure on this page is an observation from one of these
+  stations — never a resort's own marketing number. Stations sit in the valley
+  town rather than on the mountain, so the gap below the summit is the main
+  reason on-hill totals run higher.</p>
+  <div class="tablewrap"><table class="cmp" id="src"><thead></thead><tbody></tbody></table></div>
+</section>
+
 <footer id="foot"></footer>
 </div>
 
@@ -212,6 +230,7 @@ const SEASON = /*__SEASON__*/null;
 <script src="site.js"></script>
 <script>
 let showBands = true;
+let dayDepth = false;   // the Day-by-day chart can show lying depth instead
 
 function svgScan(series, a, L, scaleFrom){
   const W=760, H=250, P={l:46,r:14,t:14,b:28};
@@ -291,12 +310,84 @@ function svgScan(series, a, L, scaleFrom){
   return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date, with the range each resort delivers">${body}</svg>`, model};
 }
 
+function svgDaily(series, a, b){
+  const W=760, H=230, P={l:52,r:14,t:14,b:28};
+  const iw=W-P.l-P.r, ih=H-P.t-P.b;
+  const key = dayDepth ? "depth" : "snow";
+  const smooth = dayDepth ? 3 : 4;
+  series.forEach(s => { s._day = smoothBy(s.dayCurve, key, smooth); });
+  const maxv = Math.max(1, ...series.flatMap(s => s._day.map(p => p.v || 0)));
+  const X = d => P.l + (d/(NDAYS-1))*iw;
+  const Y = v => P.t + ih - (Math.min(v,maxv)/maxv)*ih;
+  let g = axes(W,H,P,maxv,X);
+  g += `<text class="axis" x="${P.l-6}" y="${P.t-4}" text-anchor="end">`
+     + (dayDepth ? "cm lying" : "cm/day") + `</text>`;
+  // The chosen trip, on the same axis.
+  const wx1 = X(a), wx2 = X(Math.min(NDAYS-1, b));
+  g += `<rect class="win" x="${wx1.toFixed(1)}" y="${P.t}" `
+     + `width="${Math.max(1.5, wx2-wx1).toFixed(1)}" height="${ih}"/>`
+     + `<line class="winedge" x1="${wx1.toFixed(1)}" y1="${P.t}" x2="${wx1.toFixed(1)}" y2="${P.t+ih}"/>`
+     + `<line class="winedge" x1="${wx2.toFixed(1)}" y1="${P.t}" x2="${wx2.toFixed(1)}" y2="${P.t+ih}"/>`;
+  series.forEach(s => {
+    const pts = s._day.filter(p => p.v != null);
+    if(pts.length) g += `<polyline class="ln" stroke="${s.colour}" points="`
+      + pts.map(p => X(p.d).toFixed(1)+","+Y(p.v).toFixed(1)).join(" ") + `"/>`;
+  });
+  g += `<line class="guide" x1="0" y1="${P.t}" x2="0" y2="${P.t+ih}" opacity="0"/>`;
+  series.forEach(s => { g += `<circle class="hit" r="3.5" fill="${s.colour}" opacity="0"/>`; });
+
+  const byDay = series.map(s => { const m = new Map();
+    s._day.forEach(p => m.set(p.d, p)); return m; });
+  const raw = series.map(s => { const m = new Map();
+    s.dayCurve.forEach(p => m.set(p.d, p)); return m; });
+  const model = {W, at(xv){
+    let d = Math.round((xv - P.l)/iw*(NDAYS-1));
+    d = Math.max(0, Math.min(NDAYS-1, d));
+    const rows = [];
+    series.forEach((ser,i) => {
+      const p = byDay[i].get(d), r = raw[i].get(d);
+      if(!p || p.v == null) return;
+      rows.push({name:ser.name, colour:ser.colour, y:Y(p.v), sort:p.v,
+                 value: (Math.round(p.v*10)/10) + (dayDepth ? "cm" : "cm/day"),
+                 extra: r && r.depth != null && !dayDepth
+                          ? Math.round(r.depth) + "cm base" : ""});
+    });
+    if(!rows.length) return null;
+    rows.sort((x,y) => y.sort - x.sort);
+    const dt = fromOrd(d);
+    return {x:X(d), label:dateLabel(dt.m, dt.d), rows};
+  }};
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall for each day of the season">${g}</svg>`, model};
+}
+
 /* ---------- main ---------- */
+/* Provenance: which station each figure actually came from. */
+function renderSource(series){
+  el("src").tHead.innerHTML = "<tr><th>Resort</th><th>Station</th><th>Station height</th>"
+    + "<th>Below summit</th><th>Record</th><th>Source</th></tr>";
+  el("src").tBodies[0].innerHTML = series.map(s => {
+    const d = DATA[s.k];
+    const seasons = d.seasons || [];
+    const span = seasons.length ? seasons[0].s + " – " + seasons[seasons.length-1].s : "—";
+    const gap = (d.top && d.station_m != null) ? Math.round(d.top - d.station_m) : null;
+    return `<tr><td class="who"><i style="background:${s.colour}"></i>${s.name}`
+      + `<br><span class="sub">${d.area}</span></td>`
+      + `<td>${d.station || "—"}<br><span class="sub">${d.region || ""}</span></td>`
+      + `<td>${d.station_m != null ? Math.round(d.station_m) + "<span class=\"sub\">m</span>" : "—"}</td>`
+      + `<td>${gap != null ? gap.toLocaleString() + "<span class=\"sub\">m</span>" : "—"}</td>`
+      + `<td>${span}<br><span class="sub">${seasons.length} seasons</span></td>`
+      + `<td>${(d.source || "").toUpperCase()}<br><span class="sub">${d.station_id || ""}</span></td>`
+      + `</tr>`;
+  }).join("");
+}
+
 function blank(msg){
   el("verdict").innerHTML = `<span class="nodaily">${msg}</span>`;
   el("cmp").tHead.innerHTML = ""; el("cmp").tBodies[0].innerHTML = "";
-  el("scan").innerHTML = ""; el("key").innerHTML = "";
+  el("scan").innerHTML = ""; el("key").innerHTML = ""; el("day").innerHTML = "";
+  el("src").tHead.innerHTML = ""; el("src").tBodies[0].innerHTML = "";
   el("cmphint").textContent = ""; el("scanhint").textContent = "";
+  el("dayhint").textContent = "";
 }
 
 async function renderPage(){
@@ -315,6 +406,7 @@ async function renderPage(){
   series.forEach(s => {
     const pk = s.curve.length ? s.curve.reduce((x,y)=> y.mean>x.mean?y:x) : null;
     s.peak = pk; s.gap = pk ? pk.mean - s.avg : 0;
+    s.dayCurve = dailyCurve(s.seasons, s.rows.map(r => r.y));
   });
   const ranked = [...series].sort((x,y) => y.med - x.med);
   // Charts honour the key toggles; the table keeps every pick, dimmed.
@@ -388,6 +480,8 @@ async function renderPage(){
   const scan = svgScan(vis, a, L, series);
   el("scan").innerHTML = scan.svg;
   attachHover(el("scan"), scan.model);
+  renderDay(vis, a, b);
+  renderSource(series);
   const steadiest = [...vis].sort((x,y) => x.cv - y.cv)[0];
   const swingiest = [...vis].sort((x,y) => y.cv - x.cv)[0];
   const allOff = !vis.length;
@@ -409,6 +503,34 @@ async function renderPage(){
 
 /* These live on this page only -- the trends page has no Spread control --
    and were dropped when the shared half moved to site.js. */
+function renderDay(vis, a, b){
+  if(!vis.length){
+    el("day").innerHTML = "";
+    el("dayhint").innerHTML = `<span class="nodaily">Every resort is hidden.</span>`;
+    return;
+  }
+  const d = svgDaily(vis, a, b);
+  el("day").innerHTML = d.svg;
+  attachHover(el("day"), d.model);
+  el("dayhint").innerHTML = dayDepth
+    ? `Average depth of snow lying at the station on each day of the season, over `
+      + `${since ? "the last " + since + " seasons" : "every season on record"}. This is `
+      + `what builds and then melts, so it answers "will there be cover" rather than `
+      + `"will it be snowing". Smoothed over a week; your dates are the shaded block.`
+    : `Average new snow on each day of the season, over `
+      + `${since ? "the last " + since + " seasons" : "every season on record"} — the shape `
+      + `of the winter rather than a total, so you can see when it reliably starts and `
+      + `stops. A single calendar day across twenty seasons is noisy, so the line is `
+      + `smoothed over nine days; hover for the figure and that day's typical base.`;
+}
+
+el("dayunit").onclick = () => {
+  dayDepth = !dayDepth;
+  el("dayunit").setAttribute("aria-pressed", dayDepth);
+  el("dayunit").textContent = dayDepth ? "Show new snow" : "Show base depth";
+  renderPage();
+};
+
 el("showall").onclick = () => { hidden.clear(); renderPage(); };
 el("hideall").onclick = () => { picked.forEach(k => hidden.add(k)); renderPage(); };
 el("bands").onclick = () => {

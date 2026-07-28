@@ -107,6 +107,7 @@ def build():
             "area": reg.get("area", ""),
             "region": head.get("region", ""),
             "station": head.get("station", ""),
+            "source": source,
             "station_id": station_id,
             "station_m": station_m,
             "daily": daily_id,

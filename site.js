@@ -108,6 +108,46 @@ function scanCurve(seasons, L, years){
   return out;
 }
 
+/* Mean new snow and mean lying depth for each day of the season.
+
+   A single day averaged over ~20 seasons is very noisy -- one big dump moves
+   it several centimetres -- so the caller smooths for display. Days with no
+   observation are skipped rather than counted as zero, which matters at the
+   edges of the record where a station had not started reporting. */
+function dailyCurve(seasons, years){
+  const snow = new Array(NDAYS).fill(0), sn = new Array(NDAYS).fill(0);
+  const dep = new Array(NDAYS).fill(0), dn = new Array(NDAYS).fill(0);
+  years.forEach(y => {
+    const s = seasons[y];
+    if(!s) return;
+    for(let i=0;i<NDAYS;i++){
+      if(s.snow[i] != null){ snow[i] += s.snow[i]; sn[i]++; }
+      if(s.depth[i] != null){ dep[i] += s.depth[i]; dn[i]++; }
+    }
+  });
+  const out = [];
+  for(let i=0;i<NDAYS;i++){
+    // 29 Feb only exists in one season of four, so require a few observations
+    // before drawing a point at all.
+    if(sn[i] < 3) continue;
+    out.push({d:i, snow:snow[i]/sn[i], depth: dn[i] >= 3 ? dep[i]/dn[i] : null});
+  }
+  return out;
+}
+
+/* Centred moving average, used to make the day curve legible without
+   pretending the underlying daily figures are smooth. */
+function smoothBy(pts, key, w){
+  return pts.map((_, i) => {
+    let t=0, n=0;
+    for(let j=Math.max(0,i-w); j<=Math.min(pts.length-1,i+w); j++){
+      const v = pts[j][key];
+      if(v != null){ t += v; n++; }
+    }
+    return {d: pts[i].d, v: n ? t/n : null};
+  });
+}
+
 function buildPicker(){
   const have = Object.keys(DATA||{});
   if(have.length < TOTAL){
@@ -349,7 +389,8 @@ async function seriesFor(a, b, L){
     const avg = mean(totals), sd = stdev(totals);
     out.push({
       k, name:nameOf(k), area:DATA[k].area, colour:colourOf(i, picked.length),
-      rows, totals, curve:scanCurve(seasons, L, years),
+      // `seasons` is the parsed daily cache; the day-by-day chart needs it.
+      seasons, rows, totals, curve:scanCurve(seasons, L, years),
       avg, med:median(totals), sd, cv: avg ? sd / avg * 100 : 0,
       p10:pct(totals,0.1), p90:pct(totals,0.9),
       powder:mean(rows.map(r => r.powder)),
