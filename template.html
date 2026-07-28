@@ -75,15 +75,10 @@ tr:hover .bar{background:var(--s3)}
 
 <section>
   <h2>Season by month</h2>
-  <p class="hint">One row per season, November through April. Colour follows JMA's own
-  snow-chart progression — blue for an ordinary month, magenta where the station cleared
-  three metres in thirty days.</p>
+  <p class="hint" id="mxhint"></p>
   <div class="matrix">
     <table id="matrix">
-      <thead><tr>
-        <th class="sea">Season</th><th>Nov</th><th>Dec</th><th>Jan</th>
-        <th>Feb</th><th>Mar</th><th>Apr</th><th class="tot">Total</th>
-      </tr></thead>
+      <thead><tr id="mhead"></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -99,8 +94,11 @@ const DATA = /*__DATA__*/null;
 
 const GROUPS = /*__GROUPS__*/null;
 const TOTAL = /*__TOTAL__*/0;
+const SEASON = /*__SEASON__*/null;
 const nameOf = k => (DATA[k] && DATA[k].name) || k;
-const MONTHS = ["Nov","Dec","Jan","Feb","Mar","Apr"];
+const MNAME = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
+               7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"};
+const MONTHS = SEASON.months.map(m => MNAME[m]);
 const STOPS = [0,50,100,150,200,300];
 const RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
 
@@ -171,6 +169,13 @@ function boot(){
       nav.appendChild(g);
     }
   }
+  el("mxhint").innerHTML = "One row per season, " + MONTHS[0] + " through "
+    + MONTHS[MONTHS.length-1] + ". Colour follows JMA's own snow-chart progression — "
+    + "blue for an ordinary month, magenta where the station cleared three metres in "
+    + "thirty days.";
+  el("mhead").innerHTML = '<th class="sea">Season</th>'
+    + MONTHS.map(m => `<th>${m}</th>`).join("")
+    + '<th class="tot">Total</th>';
   buildLegend();
   // .pgbody scopes this to resort buttons; the area headers are buttons too.
   const first = nav.querySelector(".pgbody button");
@@ -199,7 +204,7 @@ function render(){
   const d = DATA[current], rows = d.seasons;
   const gap = (d.top && d.station_m != null) ? Math.round(d.top - d.station_m) : null;
   el("station").innerHTML =
-    "Station <b>" + d.station_ja + "</b>" +
+    "Station <b>" + d.station + "</b>" +
     (d.station_m != null ? " at " + Math.round(d.station_m) + "m" : "") +
     (d.areas ? " · covers " + d.areas : "") +
     (d.base ? " · lifts run " + d.base + "–" + d.top + "m" : "") +

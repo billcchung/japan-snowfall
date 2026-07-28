@@ -11,16 +11,19 @@ const pct = (arr,p) => { const s=[...arr].sort((x,y)=>x-y);
   const i=(s.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
   return lo===hi ? s[lo] : s[lo]+(s[hi]-s[lo])*(i-lo); };
 
-/* Days are an ordinal across Nov 1 - Apr 30, so a range crossing the New Year
-   is a contiguous slice. Slot 120 is 29 Feb, empty in three seasons of four. */
-const MON = [11,12,1,2,3,4];
-const MLEN = {11:30, 12:31, 1:31, 2:29, 3:31, 4:30};
-const MNAME = {11:"Nov", 12:"Dec", 1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr"};
+/* Days are an ordinal across the season, so a range crossing the New Year is
+   a contiguous slice. The season comes from the build rather than being
+   repeated here, so widening it is a one-line change in site.py.
+   February always gets 29 slots; a non-leap season leaves the last empty. */
+const MON = SEASON.months;
+const MLEN = Object.fromEntries(Object.entries(SEASON.len).map(([m,n]) => [Number(m), n]));
+const MNAME = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
+               7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"};
 const ORD = (() => { const o={}; let n=0; MON.forEach(m => {o[m]=n; n+=MLEN[m];}); return o; })();
-const NDAYS = 182;
+const NDAYS = SEASON.days;
 const ord = (m,d) => ORD[m] + d - 1;
 const fromOrd = o => { for(const m of MON) if(o < ORD[m]+MLEN[m]) return {m, d:o-ORD[m]+1};
-  return {m:4, d:30}; };
+  const last = MON[MON.length-1]; return {m:last, d:MLEN[last]}; };
 const isLeap = y => (y%4===0 && y%100!==0) || y%400===0;
 const dateLabel = (m,d) => d + " " + MNAME[m];
 const seasonLabel = y => y + "/" + String(y+1).slice(2);
@@ -58,7 +61,7 @@ async function ensureDaily(k){
   const out = {};
   for(const key in raw){
     const [y, mm] = key.split("-").map(Number);
-    const sy = mm >= 11 ? y : y - 1;
+    const sy = mm >= SEASON.wrap ? y : y - 1;
     if(!out[sy]) out[sy] = {snow:new Array(NDAYS).fill(null),
                             depth:new Array(NDAYS).fill(null)};
     const base = ORD[mm];
@@ -71,8 +74,12 @@ async function ensureDaily(k){
 
 function expectedDays(a,b,sy){
   let n = b - a + 1;
+  if(ORD[2] === undefined) return n;          // February outside the season
   const f29 = ORD[2] + 28;
-  if(a <= f29 && f29 <= b && !isLeap(sy+1)) n--;
+  // February falls in the season's second calendar year while months from
+  // SEASON.wrap onward are in the first.
+  const febYear = 2 >= SEASON.wrap ? sy : sy + 1;
+  if(a <= f29 && f29 <= b && !isLeap(febYear)) n--;
   return n;
 }
 
@@ -130,13 +137,12 @@ function buildPicker(){
 
       // Tri-state: empty, part-filled, filled. Clicking selects the whole
       // region, or clears it when it is already fully selected.
-      let sel = null;
       if(multi){
-        sel = document.createElement("button");
-        sel.type = "button";
-        sel.className = "pgsel";
-        sel.innerHTML = "<i></i>";
-        sel.onclick = () => {
+        const box = document.createElement("button");
+        box.type = "button";
+        box.className = "pgsel";
+        box.innerHTML = "<i></i>";
+        box.onclick = () => {
           const all = ks.every(k => picked.includes(k));
           if(all) picked = picked.filter(k => !ks.includes(k));
           else {
@@ -145,7 +151,7 @@ function buildPicker(){
           }
           renderPage();
         };
-        row.appendChild(sel);
+        row.appendChild(box);
       }
 
       const head = document.createElement("button");
@@ -343,10 +349,9 @@ async function seriesFor(a, b, L){
     const avg = mean(totals), sd = stdev(totals);
     out.push({
       k, name:nameOf(k), area:DATA[k].area, colour:colourOf(i, picked.length),
-      seasons, rows, totals, curve:scanCurve(seasons, L, years),
+      rows, totals, curve:scanCurve(seasons, L, years),
       avg, med:median(totals), sd, cv: avg ? sd / avg * 100 : 0,
-      p10:pct(totals,0.1), p25:pct(totals,0.25),
-      p75:pct(totals,0.75), p90:pct(totals,0.9),
+      p10:pct(totals,0.1), p90:pct(totals,0.9),
       powder:mean(rows.map(r => r.powder)),
       base: depths.length ? mean(depths) : null,
     });

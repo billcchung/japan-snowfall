@@ -2,7 +2,7 @@
 
 Historical snowfall for Japanese ski resorts, taken from Japan Meteorological
 Agency station records instead of resort marketing figures. A static site — no
-build tooling, no dependencies, one Python script.
+build tooling, no dependencies, standard library only.
 
 ## Where it lives
 
@@ -27,15 +27,16 @@ python3 jma_snowfall.py discover
 python3 jma_snowfall.py fetch
 python3 jma_snowfall.py verify
 python3 jma_snowfall.py daily
-python3 jma_snowfall.py build
+python3 site.py build
 ```
 
-Standard library only. `discover` is one request per prefecture. `fetch` is
-one request per surface station but one request *per year of record* per
-AMeDAS station. `daily` is one request per station-month, which is ~2,900 on a
-cold start and ~54 afterwards because cached months are skipped. The script
-rate limits itself throughout, because JMA asks people not to hammer the site.
-Pass resort names to either command to do a subset.
+Standard library only, and rate limited throughout because JMA asks people not
+to hammer the site. `discover` is one request per prefecture, about 50.
+`fetch` is one request per surface station but one *per year of record* per
+AMeDAS station, roughly 1,400 in all. `daily` is one request per station-month:
+about 14,000 from cold, and ~300 on a weekly run because cached months are
+skipped. Pass resort names to `fetch` or `daily` to do a subset; both ignore
+resorts belonging to another source.
 
 ## What's in the repo
 
@@ -45,14 +46,40 @@ Pass resort names to either command to do a subset.
 | `index.html` | Per-resort records. Generated — edit `template.html`. |
 | `plan.html` | Multi-resort trip planner. Generated — edit `plan-template.html`. |
 | `trends.html` | Season-by-season change per resort. Generated — edit `trends-template.html`. |
-| `*-template.html` | Markup for the three pages. `/*__DATA__*/null`, `/*__GROUPS__*/null` and `/*__TOTAL__*/0` are where the data lands. |
+| `*-template.html` | Markup for the three pages. `/*__DATA__*/null`, `/*__GROUPS__*/null`, `/*__SEASON__*/null` and `/*__TOTAL__*/0` are where the data lands. |
 | `site.css`, `site.js` | Shared styling and shared behaviour — picker, date controls, stats, daily cache. Each page defines its own `renderPage()`. |
-| `jma_snowfall.py` | The Japan adapter: `discover`, `fetch`, `verify`, `daily`, `build`. Reads `resorts.json`. |
+| `jma_snowfall.py` | The Japan fetcher: `discover`, `fetch`, `verify`, `daily`. Knows JMA and nothing else. |
+| `site.py` | `build` — registry plus CSVs to HTML. Knows no weather service. |
 | `data/*.csv` | One file per resort, one row per season. Generated. |
 | `data/daily/*.json` | Daily new snow and snow depth, one file per station. Generated, cached. |
 | `reference.json` | Resort elevations and claimed annual snowfall. |
 | `fixtures/niseko_kutchan.csv` | The hand-transcribed Kutchan table. `verify` checks the scrape against it. |
 | `seed_kutchan.py` | Prints that fixture to stdout: `python3 seed_kutchan.py > fixtures/niseko_kutchan.csv`. |
+
+## Adding a country
+
+`site.py` never opens a source-specific index or code table, so a second
+country needs a fetcher and registry entries, not changes here.
+
+1. Add entries to `resorts.json` with your own `source` and whatever `station`
+   object your service needs.
+2. Write a fetcher that produces, per resort, `data/<resort>.csv` with these
+   columns: `resort, source, station, station_id, station_m, region, season,
+   oct, nov, dec, jan, feb, mar, apr, may, season_total_cm, incomplete, note`.
+   `station_m` may be blank. `season` is `YYYY/YY`.
+3. Optionally write `data/daily/<source>-<station_id>.json`, keyed `"YYYY-MM"`,
+   each holding `snow` and `depth` arrays of one value per day. Without it the
+   resort appears on the records page but not the planner or trends.
+4. Run `python3 site.py build`.
+
+`station_id` need only be unique within a source — the daily filename is
+namespaced, so two services may number stations however they like.
+
+Two things are still Northern-hemisphere only. The season runs 1 Oct – 31 May
+and is defined in one place (`SEASON_MONTHS` in `site.py`, emitted into each
+page), but the season-year rule assumes a winter that straddles New Year, so a
+Southern-hemisphere resort would need that generalised. And `verify` only
+checks Japan; a second source should bring its own anchor.
 
 ## Reading the numbers
 
@@ -60,9 +87,13 @@ The element is 降雪の深さ月合計 — daily new-snow depth summed over the
 snowpack depth (最深積雪), and not the cumulative figure resorts advertise.
 
 JMA files snow by 寒候年, the cold-season year running 1 August to 31 July, so a
-ski season spans two rows of the source table: November and December from one
-calendar year, January through April from the next. Read the table naively and
-every season total comes out wrong. The script handles it.
+ski season spans two rows of the source table: October through December from
+one calendar year, January through May from the next. Read the table naively
+and every season total comes out wrong. The script handles it.
+
+The season runs 1 October to 31 May — wider than Japan needs, so that the Alps
+and the Rockies fit without migrating every stored file later. October and May
+are simply near-zero at most Japanese stations.
 
 Stations sit in the valley town, not on the mountain. Kutchan's station is about
 a kilometre below the Niseko summit; Hakuba's is near the Happo base; Zao's is
@@ -72,7 +103,15 @@ you can judge for yourself.
 
 The Niseko series is validated against Ski Asia's published figures — 751 cm for
 2025/26, 685 cm for 2019/20, 2,019 cm for 1969/70, 849 cm for the last-ten
-average. All exact.
+average. All exact, and `verify` checks all 73 seasons against a hand
+transcription on every run.
+
+Those published figures are November to April, so they are what the site's
+Nov–Apr columns sum to rather than its season total. Since the season widened
+to October–May the two differ where October or May saw snow — 2025/26 is 751 cm
+Nov–Apr and 752 cm across the full season. Across every Japanese resort October
+contributes 0.21% of all recorded snowfall and May 0.16%; the columns are there
+for the Alps and the Rockies, not for Japan.
 
 ## Known weak spots
 
@@ -106,19 +145,12 @@ If a table ever parses to zero rows, check that first.
 that markup changes there's a fallback that scrapes bare block numbers, but it
 loses the station names, so `fetch` will then report stations missing.
 
-## Adding resorts, and other countries
+## Adding a Japanese resort
 
-Adding a Japanese resort means one entry in `resorts.json` giving the station's
-exact Japanese name and its region code. Grep `station_index.json` after
-`discover` to find it. Registry order is display order.
-
-Adding a country means entries with a different `source`, plus a fetcher that
-writes the same per-resort CSV — `resort, station_ja, prec_no, block_no,
-season, nov…apr, season_total_cm, incomplete, note` — and, for the planner, a
-daily cache under `data/daily/` keyed `"YYYY-MM"` with `snow` and `depth`
-arrays. `jma_snowfall.py` only claims registry entries whose `source` is
-`jma`, so a second fetcher can sit alongside it without touching this one.
-`build` reads whatever is in `data/` and groups the picker by country and
-area, so a new country appears on both pages with no front-end change.
+One entry in `resorts.json` giving the station's exact Japanese name and its
+region code. Grep `station_index.json` after `discover` to find it, and check
+the station's `"snow"` flag is `true` — plenty of AMeDAS stations report wind
+and temperature but no snow, and `fetch` will refuse rather than write an empty
+series. Registry order is display order.
 
 Data attribution in [ATTRIBUTION.md](ATTRIBUTION.md).

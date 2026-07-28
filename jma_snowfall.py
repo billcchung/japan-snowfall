@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Pull historical snowfall for Japanese ski resorts from the Japan
-Meteorological Agency and write one CSV of Nov-Apr ski seasons per resort.
+Meteorological Agency and write one CSV of Oct-May ski seasons per resort.
 
 Stdlib only. Run from anywhere with access to data.jma.go.jp.
 
@@ -10,18 +10,20 @@ Stdlib only. Run from anywhere with access to data.jma.go.jp.
     python3 jma_snowfall.py fetch niseko hakuba
     python3 jma_snowfall.py verify        # Kutchan vs the transcribed table
     python3 jma_snowfall.py daily         # daily snow and depth, incremental
-    python3 jma_snowfall.py build         # regenerate index.html and plan.html
 
-Resorts live in resorts.json, not in this file. This module handles the ones
-whose source is "jma"; another country means another fetcher writing the same
-CSV and data/daily/ shapes.
+then `python3 site.py build` to regenerate the pages.
+
+Resorts live in resorts.json; this module handles the ones whose source is
+"jma" and ignores the rest. Building the site is site.py's job and knows
+nothing about JMA, so a second country needs a fetcher writing the CSV and
+data/daily/ shapes site.py documents -- and no change here.
 
 Notes on the source data
 ------------------------
 JMA aggregates snow by 寒候年 (cold-season year): Aug 1 of the previous
 calendar year to Jul 31 of the labelled year. The monthly table columns are
-calendar months, so a ski season is assembled from two rows: Nov/Dec of
-year N and Jan-Apr of year N+1.
+calendar months, so a ski season is assembled from two rows: Oct-Dec of
+year N and Jan-May of year N+1.
 
 The element pulled is 降雪の深さ月合計 -- the sum of daily new-snow depth in
 cm, which is what "snowfall" means on resort marketing pages. It is not the
@@ -86,21 +88,6 @@ REGISTRY = load_registry()
 # resort -> (station name, region code, elevation-gap note).
 RESORTS = {k: (v["station"]["name_ja"], v["station"]["prec_no"], v["note"])
            for k, v in REGISTRY.items() if v["source"] == "jma"}
-
-MONTH_COLS = ["jan", "feb", "mar", "apr", "may", "jun", "jul",
-              "aug", "sep", "oct", "nov", "dec"]
-
-def grouping():
-    """Country -> areas -> resort keys, in registry order.
-
-    Drives the picker on both pages. Registry order is display order, so
-    reordering resorts.json reorders the site.
-    """
-    tree = {}
-    for k, v in REGISTRY.items():
-        tree.setdefault(v["country"], {}).setdefault(v["area"], []).append(k)
-    return tree
-
 
 # --------------------------------------------------------------------------
 # http
@@ -372,7 +359,13 @@ DAILY_URL = {
 SNOW_COL = {"s": -4, "a": -2}     # 降雪の深さ 日合計 (cm)
 DEPTH_COL = {"s": -3, "a": -1}    # 最深積雪 (cm)
 
-SEASON_MONTHS = [(0, 11), (0, 12), (1, 1), (1, 2), (1, 3), (1, 4)]
+# The ski season as this site defines it: 1 Oct - 31 May, wide enough for the
+# Alps and the Rockies as well as Japan. Offsets are from the season's first
+# calendar year. Widening later would mean migrating every CSV and every
+# cached station-month, so it is worth carrying the two quiet months.
+SEASON_MONTHS = [(0, 10), (0, 11), (0, 12),
+                 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5)]
+SEASON_COLS = ["oct", "nov", "dec", "jan", "feb", "mar", "apr", "may"]
 
 
 def daily_month(prec_no, block_no, kind, year, month):
@@ -408,6 +401,7 @@ def daily(names):
     pick up the current season. Keyed by station rather than resort: 旭川
     serves both Asahidake and Kamui and is fetched once.
     """
+    names = _mine(names, "daily")
     index = load_index()
     os.makedirs(DAILY, exist_ok=True)
     groups = {}
@@ -424,7 +418,7 @@ def daily(names):
         if not years:
             sys.stderr.write(f"{'/'.join(resorts)}: no monthly CSV yet\n")
             continue
-        path = os.path.join(DAILY, f"{st['prec_no']}-{st['block_no']}.json")
+        path = os.path.join(DAILY, f"jma-{st['prec_no']}-{st['block_no']}.json")
         cache = {}
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
@@ -459,33 +453,58 @@ def daily(names):
 
 
 def to_seasons(monthly, resort, st, note):
-    """Assemble Nov-Apr ski seasons from adjacent cold-season rows."""
+    """Assemble Oct-May ski seasons from adjacent cold-season rows.
+
+    Writes station elevation and region as columns so the build step never has
+    to open station_index.json -- that file is JMA's, and a second country's
+    fetcher has no equivalent.
+    """
     rows = []
     for y in sorted(monthly):
         if y + 1 not in monthly:
             continue
-        nov, dec = monthly[y][10], monthly[y][11]
-        jan, feb, mar, apr = monthly[y + 1][0:4]
-        vals = [nov, dec, jan, feb, mar, apr]
+        # monthly[] is indexed by calendar month - 1.
+        first = [monthly[y][m - 1] for _, m in SEASON_MONTHS if _ == 0]
+        second = [monthly[y + 1][m - 1] for off, m in SEASON_MONTHS if off == 1]
+        vals = first + second
         if all(v is None for v in vals):
             continue
         clean = [0 if v is None else v for v in vals]
-        rows.append({
+        row = {
             "resort": resort,
-            "station_ja": st["name_ja"],
-            "prec_no": st["prec_no"],
-            "block_no": st["block_no"],
+            "source": "jma",
+            "station": st["name_ja"],
+            "station_id": f"{st['prec_no']}-{st['block_no']}",
+            "station_m": "" if st.get("elevation_m") is None else st["elevation_m"],
+            "region": st.get("region", ""),
             "season": f"{y}/{str(y + 1)[2:]}",
-            "nov": clean[0], "dec": clean[1], "jan": clean[2],
-            "feb": clean[3], "mar": clean[4], "apr": clean[5],
-            "season_total_cm": round(sum(clean)),
-            "incomplete": int(any(v is None for v in vals)),
-            "note": note,
-        })
+        }
+        row.update(dict(zip(SEASON_COLS, clean)))
+        row["season_total_cm"] = round(sum(clean))
+        row["incomplete"] = int(any(v is None for v in vals))
+        row["note"] = note
+        rows.append(row)
     return rows
 
 
+def _mine(names, cmd):
+    """Keep only the resorts this module is responsible for."""
+    known, foreign = [], []
+    for n in names:
+        if n in RESORTS:
+            known.append(n)
+        elif n in REGISTRY:
+            foreign.append(f"{n} (source={REGISTRY[n]['source']})")
+        else:
+            foreign.append(f"{n} (not in resorts.json)")
+    if foreign:
+        sys.stderr.write(f"{cmd}: skipping {len(foreign)} resort(s) this fetcher "
+                         f"does not handle: {', '.join(foreign)}\n")
+    return known
+
+
 def fetch(names):
+    names = _mine(names, "fetch")
     index = load_index()
     os.makedirs(OUT, exist_ok=True)
     # Several resorts share a station -- Asahidake and Kamui are both 旭川,
@@ -549,109 +568,15 @@ def fetch(names):
 
 
 # --------------------------------------------------------------------------
-# html
-# --------------------------------------------------------------------------
-
-def build():
-    ref_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reference.json")
-    ref = {}
-    if os.path.exists(ref_path):
-        with open(ref_path, encoding="utf-8") as f:
-            ref = json.load(f)
-    index = {}
-    if os.path.exists(INDEX):
-        with open(INDEX, encoding="utf-8") as f:
-            index = json.load(f)
-    payload = {}
-    for fn in sorted(os.listdir(OUT)):
-        if not fn.endswith(".csv"):
-            continue
-        with open(os.path.join(OUT, fn), encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
-        if not rows:
-            continue
-        key = rows[0]["resort"]
-        st = index.get(f"{rows[0]['prec_no']}:{rows[0]['station_ja']}", {})
-        meta = ref.get(key, {})
-        meta_reg = REGISTRY.get(key, {})
-        payload[key] = {
-            "station_ja": rows[0]["station_ja"],
-            "station_m": st.get("elevation_m"),
-            "name": meta_reg.get("name", key),
-            "country": meta_reg.get("country", ""),
-            "area": meta_reg.get("area", ""),
-            "region": st.get("region") or PREC.get(int(rows[0]["prec_no"]), ""),
-            # Station-level daily file, fetched on demand by the planner.
-            # Keyed by station so 旭川 is downloaded once for both resorts.
-            "station_id": f"{rows[0]['prec_no']}-{rows[0]['block_no']}",
-            "daily": (f"{rows[0]['prec_no']}-{rows[0]['block_no']}"
-                      if os.path.exists(os.path.join(
-                          DAILY, f"{rows[0]['prec_no']}-{rows[0]['block_no']}.json"))
-                      else None),
-            "areas": meta.get("areas", ""),
-            "base": meta.get("base"),
-            "top": meta.get("top"),
-            "claimed_m": meta.get("claimed_m"),
-            "note": rows[0].get("note", ""),
-            "seasons": [{
-                "s": r["season"],
-                "m": [int(float(r[k])) for k in
-                      ("nov", "dec", "jan", "feb", "mar", "apr")],
-                "t": int(float(r["season_total_cm"])),
-                "i": int(r.get("incomplete") or 0),
-            } for r in rows],
-        }
-    # Resorts reading the same station produce identical series. Say so on the
-    # page rather than leaving two matching lines looking like a bug -- 旭川
-    # stands in for both Asahidake and Kamui, 1,500m below the former.
-    # Group by the station itself, not by the daily file -- that file may not
-    # have been fetched yet, and the resorts still share a series regardless.
-    by_station = {}
-    for key, v in payload.items():
-        by_station.setdefault(v["station_id"], []).append(key)
-    for group in by_station.values():
-        if len(group) < 2:
-            continue
-        for key in group:
-            payload[key]["shares"] = [payload[k]["name"] for k in group if k != key]
-
-    here = os.path.dirname(os.path.abspath(__file__))
-    # Only advertise countries and areas that actually have data, so an empty
-    # heading never appears for resorts that have not been fetched yet.
-    tree = {}
-    for country, areas in grouping().items():
-        for area, keys in areas.items():
-            have = [k for k in keys if k in payload]
-            if have:
-                tree.setdefault(country, {})[area] = have
-    blobs = {
-        "/*__DATA__*/null": json.dumps(payload, ensure_ascii=False,
-                                       separators=(",", ":")),
-        "/*__GROUPS__*/null": json.dumps(tree, ensure_ascii=False,
-                                         separators=(",", ":")),
-        "/*__TOTAL__*/0": str(len(REGISTRY)),
-    }
-    for tpl_name, out_name in (("template.html", "index.html"),
-                               ("plan-template.html", "plan.html"),
-                               ("trends-template.html", "trends.html")):
-        tpl = os.path.join(here, tpl_name)
-        if not os.path.exists(tpl):
-            continue
-        with open(tpl, encoding="utf-8") as f:
-            html = f.read()
-        for token, blob in blobs.items():
-            html = html.replace(token, blob)
-        with open(os.path.join(here, out_name), "w", encoding="utf-8") as f:
-            f.write(html)
-        print(f"{len(payload)} resorts -> {out_name}")
-
-
-# --------------------------------------------------------------------------
 # regression check
 # --------------------------------------------------------------------------
 
 def verify():
     """Check the scraped Kutchan series against the hand-transcribed table.
+
+    Only Japan has such an anchor; a second source should bring its own and
+    this should dispatch on it. Until then a green run says nothing about any
+    other country's data.
 
     Kutchan is the one station whose numbers were confirmed independently
     against Ski Asia's published figures, so it is the canary for a JMA
@@ -662,8 +587,11 @@ def verify():
         sys.exit("no data/niseko.csv -- run 'fetch niseko' first")
     if not os.path.exists(FIXTURE):
         sys.exit(f"missing fixture {FIXTURE}")
+    # The fixture is a Nov-Apr transcription and the CSV now runs Oct-May, so
+    # compare the overlapping months rather than the season total.
+    fixture_months = ("nov", "dec", "jan", "feb", "mar", "apr")
     with open(scraped, encoding="utf-8") as f:
-        got = {r["season"]: int(float(r["season_total_cm"]))
+        got = {r["season"]: round(sum(float(r[m] or 0) for m in fixture_months))
                for r in csv.DictReader(f)}
     with open(FIXTURE, encoding="utf-8") as f:
         want = {r["season"]: int(float(r["season_total_cm"]))
@@ -690,8 +618,6 @@ if __name__ == "__main__":
         fetch(sys.argv[2:] or list(RESORTS))
     elif cmd == "daily":
         daily(sys.argv[2:] or list(RESORTS))
-    elif cmd == "build":
-        build()
     elif cmd == "verify":
         verify()
     else:

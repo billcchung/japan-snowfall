@@ -1,11 +1,11 @@
 name: Update snowfall data
 
 # GitHub's runners can reach data.jma.go.jp, so the scrape happens here rather
-# than on your machine. Mondays 05:00 JST through the season, plus a manual
-# trigger from the Actions tab.
+# than on your machine. 20:00 UTC Monday -- 05:00 JST Tuesday -- through the
+# season, plus a manual trigger from the Actions tab.
 on:
   schedule:
-    - cron: "0 20 * 10,11,12,1,2,3,4,5 1"
+    - cron: "0 20 * 10,11,12,1,2,3,4,5,6 1"   # season runs Oct-May
   workflow_dispatch:
     inputs:
       rediscover:
@@ -31,7 +31,7 @@ jobs:
           python-version: "3.12"
 
       # The station index rarely changes, so it is committed and reused.
-      # Discovery is ~50 requests; the fetch is ~30. Both are rate limited in
+      # Discovery is one request per prefecture, ~50 in all. Rate limited in
       # the script, because JMA explicitly asks people not to hammer the site.
       - name: Build station index
         if: ${{ inputs.rediscover || hashFiles('station_index.json') == '' }}
@@ -46,13 +46,14 @@ jobs:
       - name: Check Kutchan against the transcribed table
         run: python3 jma_snowfall.py verify
 
-      # Cached station-months are skipped, so this only picks up the season
-      # in progress -- roughly 54 requests, not the ~2,900 of a cold start.
+      # Cached station-months are skipped, so a normal run only picks up the
+      # season in progress: 37 stations x 8 months, ~300 requests, against
+      # ~14,000 for a cold start.
       - name: Fetch daily records
         run: python3 jma_snowfall.py daily
 
       - name: Rebuild site
-        run: python3 jma_snowfall.py build
+        run: python3 site.py build
 
       - name: Show what changed
         run: git diff --stat

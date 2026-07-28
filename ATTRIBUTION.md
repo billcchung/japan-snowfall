@@ -5,7 +5,7 @@
 降雪の深さ日合計, the sum of daily new-snow depth in centimetres over a month and
 over a day, plus 最深積雪, the depth lying on the ground, used by the trip
 planner. JMA publishes its observation data for reuse; keep the attribution
-visible, which both page footers do. JMA revises historical values
+visible, which every page footer does. JMA revises historical values
 retrospectively, so figures here are current as of the last workflow run, not
 permanent.
 
