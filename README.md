@@ -57,7 +57,7 @@ source.
 | `site.py` | `build` — registry plus CSVs to HTML. Knows no weather service. |
 | `data/*.csv` | One file per resort, one row per season. Generated. |
 | `data/daily/*.json` | Daily new snow and snow depth, one file per station. Generated, cached. |
-| `data/stations.json` | Annual snowfall for every station in the country that records it, plus the whole network's coordinates. Feeds the map. |
+| `data/stations.json` | Season-by-season snowfall for every station in the country that records it, plus the whole network's coordinates. Feeds the map. |
 | `reference.json` | Resort elevations and claimed annual snowfall. |
 | `fixtures/niseko_kutchan.csv` | The hand-transcribed Kutchan table. `verify` checks the scrape against it. |
 | `seed_kutchan.py` | Prints that fixture to stdout: `python3 seed_kutchan.py > fixtures/niseko_kutchan.csv`. |
@@ -146,6 +146,14 @@ cheapest check that the right column is being read.
 so a naive `<td>…</td>` match merges the year with the January value and every
 row fails its column count. `cells()` splits on opening tags for that reason.
 If a table ever parses to zero rows, check that first.
+
+**A quarter of the network's snow stations are historical.** 26 of the 336 on
+the map stopped reporting before 2020, four of them in 1997, and their records
+are not marked as closed anywhere in the source. Any figure computed over "the
+last N years of the record" therefore compares live stations against dead ones
+— which is why `survey` stores the whole series and the map averages over a
+season window you pick, dropping stations that have fewer than five seasons
+inside it.
 
 **Station discovery** parses JMA's `viewPoint(...)` calls on the region maps. If
 that markup changes there's a fallback that scrapes bare block numbers, but it

@@ -634,22 +634,28 @@ def survey(names=None):
         if len(years) < 10:
             continue
         ys = sorted(years)
-        recent = [years[y] for y in ys[-20:]]
+        # The whole series, not an average: a station that stopped reporting in
+        # 1997 must not be comparable with a live one on a figure labelled
+        # "recent". The page picks its own window, so it needs the years.
+        # Indexed from `from`; a gap year is null.
+        series = [years.get(y) for y in range(ys[0], ys[-1] + 1)]
         out.append({
             "id": f"{st['prec_no']}-{st['block_no']}",
             "name": st["name_ja"], "kana": st["kana"], "region": st["region"],
             "prec": st["prec_no"], "kind": st["kind"],
             "lat": st["lat"], "lon": st["lon"], "elev": st["elevation_m"],
             "years": len(ys), "from": ys[0], "to": ys[-1],
-            "mean": round(sum(years.values()) / len(ys)),
-            "recent": round(sum(recent) / len(recent)),
-            "best": round(max(years.values())),
+            "snow": [None if v is None else round(v) for v in series],
         })
         done += 1
         if done % 25 == 0:
             print(f"  {done}/{len(todo)} stations")
         time.sleep(1.0)
-    out.sort(key=lambda r: -r["recent"])
+    def mean_cm(r):
+        vals = [v for v in r["snow"] if v is not None]
+        return sum(vals) / len(vals)
+
+    out.sort(key=lambda r: -mean_cm(r))
     os.makedirs(os.path.dirname(SURVEY), exist_ok=True)
     # Every station's position, snow or not. 1,300 points scattered over the
     # country trace its shape well enough to orient a map without shipping a
@@ -661,7 +667,8 @@ def survey(names=None):
                   f, ensure_ascii=False, separators=(",", ":"))
     print(f"{len(out)} stations with 10+ years -> {SURVEY}")
     for r in out[:5]:
-        print(f"  {r['name']:8} {r['region']:6} {r['recent']:>5}cm/yr  {r['elev']:>6}m")
+        print(f"  {r['name']:8} {r['region']:6} {mean_cm(r):>5.0f}cm/yr  "
+              f"{r['elev']:>6}m  {r['from']}-{r['to']}")
 
 
 # --------------------------------------------------------------------------

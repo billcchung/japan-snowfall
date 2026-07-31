@@ -50,10 +50,12 @@
 .detail .big{font-family:var(--mono);font-size:30px;color:var(--ice);margin:12px 0 0}
 .detail .big small{font-size:12px;color:var(--mute);margin-left:4px}
 .detail .none{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.7}
-.detail .isresort{
+.detail .isresort,.detail .stale{
   margin:14px 0 0;padding:8px 10px;border-left:2px solid var(--s4);
   font-family:var(--mono);font-size:11px;color:var(--mute);line-height:1.6
 }
+.detail .stale{border-left-color:var(--s5)}
+table.rank td.old{color:var(--s5)}
 
 .scale{display:flex;align-items:center;gap:0;margin:14px 0 0;font-family:var(--mono);
   font-size:10px;color:var(--dim);flex-wrap:wrap}
@@ -86,8 +88,8 @@ table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
   <h1>Where the snow actually falls
     <span class="ja">降雪の深さ年合計 — 全観測点</span></h1>
   <p class="lede">Every station in Japan that measures snowfall, not just the places that
-  already have lifts. Average annual new snow over each station's full record, so you can
-  see which towns get buried and which merely have a reputation.</p>
+  already have lifts. Pick the seasons you care about and it averages new snow over exactly
+  those, so you can see which towns get buried and which merely have a reputation.</p>
 </header>
 
 <nav class="pages" aria-label="Pages">
@@ -103,13 +105,19 @@ table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
   <h2>The map</h2>
   <p class="hint">Faint grey marks every weather station in the country — enough of them,
   scattered widely enough, to trace the shape of Japan without a basemap. Coloured points
-  are the ones that measure snow, shaded by how much they average in a year. Click one.</p>
+  are the ones that measure snow, shaded by how much they averaged over the seasons you
+  choose. Click one.</p>
   <div class="controls">
+    <label>Seasons
+      <select id="y0" aria-label="First season"></select>
+    </label>
+    <label>through
+      <select id="y1" aria-label="Last season"></select>
+    </label>
     <label>Rank by
       <select id="metric" aria-label="Which figure to map">
-        <option value="recent">the last 20 seasons</option>
-        <option value="mean">the whole record</option>
-        <option value="best">the single best year</option>
+        <option value="avg">average over those seasons</option>
+        <option value="best">the snowiest single season</option>
       </select>
     </label>
     <label>Station at least
@@ -133,7 +141,7 @@ table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
 </section>
 
 <section>
-  <h2>The snowiest places on record</h2>
+  <h2>The snowiest places</h2>
   <p class="hint" id="rankhint"></p>
   <div class="tablewrap"><table class="rank" id="rank"><thead></thead><tbody></tbody></table></div>
 </section>
@@ -172,7 +180,37 @@ for(const k in (DATA || {})){
   if(id) (RESORT_AT[id] = RESORT_AT[id] || []).push(DATA[k].name);
 }
 
-let survey = null, metric = "recent", minElev = 0, region = "", picked = null;
+let survey = null, metric = "avg", minElev = 0, region = "", picked = null;
+let y0 = 0, y1 = 0, firstY = 0, lastY = 0, liveY = 0;
+
+/* JMA files snow by 寒候年, the cold-season year ending 31 July, so year 1997
+   is the winter of 1996/97. Every year shown on this page is labelled as the
+   season it actually is. */
+const seasonLabel = y => `${y - 1}/${String(y % 100).padStart(2, "0")}`;
+
+/* Stats are per window, not per station: a station that stopped reporting in
+   1997 must not rank against live ones on a figure labelled "recent". */
+const STATS = new Map();
+const span = () => y1 - y0 + 1;
+// Two seasons inside the window is not comparable with twenty. Stations
+// thinner than this drop out and are counted in the caption instead.
+const minSeasons = () => Math.min(5, span());
+
+function computeStats(){
+  STATS.clear();
+  for(const s of survey.stations){
+    let sum = 0, n = 0, best = 0, bestY = null;
+    for(let y = Math.max(y0, s.from); y <= Math.min(y1, s.to); y++){
+      const v = s.snow[y - s.from];
+      if(v == null) continue;
+      sum += v; n++;
+      if(v > best){ best = v; bestY = y; }
+    }
+    STATS.set(s.id, {avg: n ? sum / n : 0, best, bestY, n});
+  }
+}
+const stat = s => STATS.get(s.id);
+const val = s => metric === "best" ? stat(s).best : stat(s).avg;
 
 /* Remote Pacific and subtropical islands are in the network because JMA flags
    every surface station as snow-capable. They record no snow and would stretch
@@ -195,28 +233,34 @@ function project(){
   };
 }
 
-function visible(){
+/* Everything the map and table draw, minus the data-coverage test — so the
+   caption can say how many stations the window itself excluded. */
+function matching(){
   return survey.stations.filter(s =>
     inBox(s) && (s.elev == null || s.elev >= minElev)
-    && (!region || s.region === region) && s[metric] > 0);
+    && (!region || s.region === region));
+}
+
+function visible(){
+  return matching().filter(s => stat(s).n >= minSeasons() && val(s) > 0);
 }
 
 function drawMap(){
   const p = project();
   const rows = visible();
-  const max = Math.max(1, ...rows.map(s => s[metric]));
+  const max = Math.max(1, ...rows.map(val));
   let g = "";
   survey.network.forEach(([lat, lon]) => {
     if(lat < BOX.lat0 || lat > BOX.lat1 || lon < BOX.lon0 || lon > BOX.lon1) return;
     g += `<circle class="net" cx="${p.x(lon).toFixed(1)}" cy="${p.y(lat).toFixed(1)}" r="1.5"/>`;
   });
   // Biggest last, so the heaviest snowfall is never hidden under a lighter point.
-  [...rows].sort((a,b) => a[metric] - b[metric]).forEach(s => {
-    const r = 2.2 + 4.6 * Math.sqrt(s[metric] / max);
+  [...rows].sort((a,b) => val(a) - val(b)).forEach(s => {
+    const r = 2.2 + 4.6 * Math.sqrt(val(s) / max);
     g += `<circle class="stn${picked === s.id ? " sel" : ""}" data-id="${s.id}" `
       + `cx="${p.x(s.lon).toFixed(1)}" cy="${p.y(s.lat).toFixed(1)}" `
-      + `r="${r.toFixed(1)}" fill="${shade(s[metric])}">`
-      + `<title>${s.name} — ${Math.round(s[metric])}cm/yr</title></circle>`;
+      + `r="${r.toFixed(1)}" fill="${shade(val(s))}">`
+      + `<title>${s.name} — ${Math.round(val(s))}cm/yr</title></circle>`;
   });
   el("map").innerHTML =
     `<svg viewBox="0 0 ${p.W} ${p.H}" role="img" aria-label="Annual snowfall by weather station across Japan">${g}</svg>`;
@@ -243,61 +287,80 @@ function drawDetail(){
       been measuring.</p>`;
     return;
   }
-  const at = RESORT_AT[s.id];
+  const at = RESORT_AT[s.id], t = stat(s);
   el("detail").innerHTML =
     `<h3>${s.name}</h3><p class="ja">${s.kana} · ${s.region}</p>`
-    + `<p class="big">${Math.round(s[metric])}<small>cm / year</small></p>`
+    + `<p class="big">${t.n ? Math.round(val(s)) : "—"}<small>cm${
+        metric === "best" ? ", snowiest season" : " / year"}</small></p>`
     + `<dl>`
-    + `<dt>Last 20 seasons</dt><dd>${Math.round(s.recent)}cm</dd>`
-    + `<dt>Whole record</dt><dd>${Math.round(s.mean)}cm</dd>`
-    + `<dt>Best year</dt><dd>${Math.round(s.best)}cm</dd>`
+    + `<dt>Window</dt><dd>${seasonLabel(y0)}–${seasonLabel(y1)}</dd>`
+    + `<dt>Seasons with data</dt><dd>${t.n} of ${span()}</dd>`
+    + `<dt>Average</dt><dd>${t.n ? Math.round(t.avg) + "cm" : "—"}</dd>`
+    + `<dt>Snowiest</dt><dd>${t.bestY
+        ? Math.round(t.best) + "cm " + seasonLabel(t.bestY) : "—"}</dd>`
+    + `<dt>Whole record</dt><dd>${Math.round(s.lifeMean)}cm</dd>`
     + `<dt>Station height</dt><dd>${s.elev != null ? Math.round(s.elev) + "m" : "—"}</dd>`
-    + `<dt>Record</dt><dd>${s.from}–${s.to}</dd>`
-    + `<dt>Years</dt><dd>${s.years}</dd>`
+    + `<dt>Measuring</dt><dd>${seasonLabel(s.from)}–${seasonLabel(s.to)}</dd>`
     + `</dl>`
+    + (s.to < liveY ? `<p class="stale">This station stopped reporting after
+        <b>${seasonLabel(s.to)}</b>. Whatever it averaged, it is not telling you about
+        snow now.</p>` : "")
     + (at ? `<p class="isresort">Already on this site as <b>${at.join(" and ")}</b> —
         this station is what those figures come from.</p>` : "");
 }
 
 function drawRank(){
-  const rows = visible().sort((a,b) => b[metric] - a[metric]).slice(0, 40);
+  const all = visible();
+  const rows = [...all].sort((a,b) => val(b) - val(a)).slice(0, 40);
   el("rank").tHead.innerHTML = "<tr><th>#</th><th>Station</th><th>Region</th>"
-    + "<th>Height</th><th>Snow / year</th><th>Best year</th><th>Record</th></tr>";
-  el("rank").tBodies[0].innerHTML = rows.map((s,i) =>
-    `<tr class="${picked === s.id ? "sel" : ""}" data-id="${s.id}">`
+    + `<th>Height</th><th>${metric === "best" ? "Snowiest season" : "Snow / year"}</th>`
+    + "<th>Seasons</th><th>Last season</th></tr>";
+  el("rank").tBodies[0].innerHTML = rows.map((s,i) => {
+    const t = stat(s);
+    return `<tr class="${picked === s.id ? "sel" : ""}" data-id="${s.id}">`
     + `<td>${i+1}</td>`
-    + `<td class="who"><i style="background:${shade(s[metric])}"></i>${s.name}`
+    + `<td class="who"><i style="background:${shade(val(s))}"></i>${s.name}`
     + (RESORT_AT[s.id] ? `<br><span class="sub">${RESORT_AT[s.id].join(", ")}</span>` : "")
     + `</td>`
     + `<td>${s.region}</td>`
     + `<td>${s.elev != null ? Math.round(s.elev) + "<span class='sub'>m</span>" : "—"}</td>`
-    + `<td>${Math.round(s[metric])}<span class='sub'>cm</span></td>`
-    + `<td>${Math.round(s.best)}<span class='sub'>cm</span></td>`
-    + `<td>${s.years}<span class='sub'> yr</span></td></tr>`).join("");
+    + `<td>${Math.round(val(s))}<span class='sub'>cm</span>`
+    + (metric === "best" ? `<span class='sub'> ${seasonLabel(t.bestY)}</span>` : "")
+    + `</td>`
+    + `<td>${t.n}<span class='sub'> of ${span()}</span></td>`
+    + `<td class="${s.to < liveY ? "old" : ""}">${seasonLabel(s.to)}</td></tr>`;
+  }).join("");
   el("rank").tBodies[0].querySelectorAll("tr").forEach(tr => {
     tr.onclick = () => { picked = tr.dataset.id; drawMap(); drawDetail(); drawRank(); };
   });
-  const all = visible();
-  const named = metric === "recent" ? "the last 20 seasons"
-              : metric === "mean" ? "each station's whole record" : "the single best year";
-  // The filters can leave fewer than the 40 the table would otherwise show.
+  // Stations the window itself removed, as opposed to the elevation and region
+  // filters -- worth naming, because a closed station silently vanishing looks
+  // like a bug otherwise.
+  const thin = matching().length - all.length;
   el("rankhint").innerHTML =
     (rows.length < all.length ? `The ${rows.length} snowiest of ${all.length} stations`
                               : `All ${all.length} matching stations`)
-    + `, by ${named}`
+    + `, by ${metric === "best" ? "the snowiest single season" : "average snowfall"}`
+    + ` over ${seasonLabel(y0)}–${seasonLabel(y1)}`
     + (minElev ? `, at ${minElev}m or higher` : "")
-    + (region ? `, in ${region}` : "") + `. Click a row to find it on the map.`;
+    + (region ? `, in ${region}` : "") + `. Click a row to find it on the map.`
+    + (thin ? ` ${thin} other station${thin > 1 ? "s" : ""} ${thin > 1 ? "are" : "is"}
+        left out for want of data — ${minSeasons() > 1
+          ? `fewer than ${minSeasons()} of those seasons on record`
+          : `nothing on record for that season`} — mostly ones that stopped
+        reporting years ago.` : "");
 }
 
 function drawCaveats(){
-  const s = survey.stations.filter(inBox);
-  const top = [...s].sort((a,b) => b.recent - a.recent).slice(0, 20);
+  const s = survey.stations.filter(x => inBox(x) && stat(x).n >= minSeasons());
+  const top = [...s].sort((a,b) => stat(b).avg - stat(a).avg).slice(0, 20);
   const topFree = top.filter(x => !RESORT_AT[x.id]).length;
+  if(!top.length){ el("caveats").innerHTML = ""; return; }
   el("caveats").innerHTML =
     `A station is one thermometer in one municipality, almost always in the valley
      where people live rather than on the hill above it — which is exactly why the
      resorts on this site average a kilometre below their own summits. A town reading
-     ${Math.round(top[0].recent)}cm a year is telling you the mountain behind it gets
+     ${Math.round(stat(top[0]).avg)}cm a year is telling you the mountain behind it gets
      considerably more, not that you should build at the station.<br><br>
      What this map answers is where snow reliably falls. What it says nothing about is
      vertical relief, aspect, avalanche terrain, road access, land you could actually
@@ -309,17 +372,69 @@ function drawCaveats(){
      Snow was never the constraint.`;
 }
 
+function redraw(){
+  computeStats();
+  drawMap(); drawRank(); drawDetail(); drawCaveats();
+}
+
+function seasonOptions(sel, chosen){
+  // Newest first: the default window is the recent one, and that is what most
+  // people are after.
+  let o = "";
+  for(let y = lastY; y >= firstY; y--)
+    o += `<option value="${y}"${y === chosen ? " selected" : ""}>${seasonLabel(y)}</option>`;
+  sel.innerHTML = o;
+}
+
 function boot(){
   fetch("data/stations.json").then(r => r.json()).then(raw => {
     survey = raw;
+    if(!survey.stations.length || !survey.stations[0].snow)
+      throw new Error("survey data predates the season window");
+    for(const s of survey.stations){
+      const v = s.snow.filter(x => x != null);
+      s.lifeMean = v.reduce((a,b) => a + b, 0) / v.length;
+    }
+    firstY = Math.min(...survey.stations.map(s => s.from));
+    lastY  = Math.max(...survey.stations.map(s => s.to));
+    // The newest season is published by only a fraction of stations at first,
+    // so "still reporting" cannot mean "has the very latest year" -- that would
+    // brand most of the live network as closed. Take the newest season half the
+    // network has filed, and call anything ending before that closed.
+    const ends = {};
+    for(const s of survey.stations) ends[s.to] = (ends[s.to] || 0) + 1;
+    let seen = 0;
+    for(let y = lastY; y >= firstY; y--){
+      seen += ends[y] || 0;
+      if(seen >= survey.stations.length / 2){ liveY = y; break; }
+    }
+    // Default to the last twenty seasons the network has actually filed. Ending
+    // on lastY instead would hand a twentieth season to the 82 stations that
+    // publish early and nineteen to everyone else.
+    y1 = liveY;
+    y0 = Math.max(firstY, liveY - 19);
+    seasonOptions(el("y0"), y0);
+    seasonOptions(el("y1"), y1);
     const regions = [...new Set(survey.stations.filter(inBox).map(s => s.region))].sort();
     const rs = el("region");
     rs.innerHTML = '<option value="">everywhere</option>'
       + regions.map(r => `<option value="${r}">${r}</option>`).join("");
-    el("metric").onchange = () => { metric = el("metric").value; drawMap(); drawRank(); drawDetail(); };
-    el("minelev").onchange = () => { minElev = Number(el("minelev").value); drawMap(); drawRank(); };
-    rs.onchange = () => { region = rs.value; drawMap(); drawRank(); };
-    drawScale(); drawMap(); drawRank(); drawDetail(); drawCaveats();
+    el("metric").onchange = () => { metric = el("metric").value; redraw(); };
+    el("minelev").onchange = () => { minElev = Number(el("minelev").value); redraw(); };
+    rs.onchange = () => { region = rs.value; redraw(); };
+    // Either end may be dragged past the other; push the other one along
+    // rather than refusing the choice.
+    el("y0").onchange = () => {
+      y0 = Number(el("y0").value);
+      if(y1 < y0){ y1 = y0; el("y1").value = y1; }
+      redraw();
+    };
+    el("y1").onchange = () => {
+      y1 = Number(el("y1").value);
+      if(y0 > y1){ y0 = y1; el("y0").value = y0; }
+      redraw();
+    };
+    drawScale(); redraw();
   }).catch(() => {
     el("gap").hidden = false;
     el("gap").innerHTML = "No survey data yet. Run <code>python3 jma_snowfall.py survey</code>, "
@@ -329,8 +444,10 @@ function boot(){
     "Source: Japan Meteorological Agency, 過去の気象データ検索 "
     + "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>), element "
     + "降雪の深さ合計 by 寒候年 — the cold-season year running "
-    + "1 August to 31 July, which is how JMA files snow. Stations with fewer than ten "
-    + "years of record are left out. Positions come from JMA's own station list; the "
+    + "1 August to 31 July, which is how JMA files snow — so the 2025/26 season is "
+    + "filed as 2026. Stations with fewer than ten years of record are left out "
+    + "entirely, and a station only ranks in a window it actually measured through: "
+    + "plenty closed decades ago. Positions come from JMA's own station list; the "
     + "map is a plain equirectangular projection with no basemap, so treat it as a "
     + "scatter of real coordinates rather than a survey chart.";
 }
