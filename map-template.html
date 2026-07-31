@@ -29,7 +29,7 @@
 
 .maprow{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
 .mapwrap{flex:1 1 460px;min-width:320px;position:relative}
-.mapwrap svg{display:block;width:100%;height:auto;max-height:76vh;cursor:grab}
+.mapwrap svg{display:block;width:100%;height:auto;cursor:grab}
 .mapwrap svg.dragging{cursor:grabbing}
 .mapwrap svg:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 .net{fill:#33445A}
@@ -280,6 +280,10 @@ function visible(){
 let world = null, view = null, mapSvg = null;
 let netDots = [], stnDots = [], labels = [], dragged = false;
 const MAXK = 40;
+// As wide as the column allows, subject to never being taller than the window.
+// Japan is a diagonal country -- the drawing is taller than it is wide -- so a
+// tighter height cap is what was stopping the map from using the width at all.
+const MAPVH = 100;
 const zoomK = () => world ? world.W / view.w : 1;
 
 function clampView(){
@@ -327,9 +331,13 @@ function drawMap(){
     + `snowfall by weather station across Japan. Zoomable; the table below lists the `
     + `same stations.">${g}<g id="mlabels"></g></svg>`;
   mapSvg = el("map").querySelector("svg");
-  // Match the box to the drawing: without this the 76vh height cap leaves dead
-  // margins either side that look like map but do not respond like it.
-  mapSvg.style.maxWidth = (76 * p.W / p.H).toFixed(1) + "vh";
+  /* The map takes the width it is given and derives its height from that. The
+     pair of vh caps only stops it growing taller than the window, and they are
+     held in the drawing's own ratio so the box always hugs the drawing --
+     otherwise the height cap leaves dead margins either side that look like map
+     but do not respond like it. */
+  mapSvg.style.maxHeight = MAPVH + "vh";
+  mapSvg.style.maxWidth = (MAPVH * p.W / p.H).toFixed(1) + "vh";
   netDots = [...mapSvg.querySelectorAll(".net")];
   stnDots = [...mapSvg.querySelectorAll(".stn")];
   stnDots.forEach(c => {
@@ -422,13 +430,22 @@ function bindZoom(){
 
   mapSvg.addEventListener("dblclick", e => zoomAt(toMap(e.clientX, e.clientY), 2));
 
+  /* Capture only once a drag is really under way. Capturing on pointerdown
+     retargets the click that follows to the <svg> itself, so a plain click on a
+     station never reaches the circle and the panel never opens. */
+  let held = false;
+  const grab = e => {
+    if(held) return;
+    try { mapSvg.setPointerCapture(e.pointerId); } catch(_){}
+    held = true;
+    mapSvg.classList.add("dragging");
+  };
+
   mapSvg.addEventListener("pointerdown", e => {
-    mapSvg.setPointerCapture(e.pointerId);
     pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
     dragged = false;
     prev = {x: e.clientX, y: e.clientY};
-    pinch = pts.size === 2 ? spread().d : 0;
-    mapSvg.classList.add("dragging");
+    if(pts.size === 2){ pinch = spread().d; grab(e); }
   });
 
   mapSvg.addEventListener("pointermove", e => {
@@ -436,12 +453,16 @@ function bindZoom(){
     pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
     if(pts.size >= 2){
       const s = spread();
+      grab(e);
       if(pinch) zoomAt(toMap(s.cx, s.cy), s.d / pinch);
       pinch = s.d; dragged = true;
       return;
     }
     const a = toMap(prev.x, prev.y), b = toMap(e.clientX, e.clientY);
-    if(Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y) > 3) dragged = true;
+    if(Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y) > 3){
+      dragged = true;
+      grab(e);
+    }
     prev = {x: e.clientX, y: e.clientY};
     view.x -= b.x - a.x; view.y -= b.y - a.y;
     applyView();
@@ -450,7 +471,7 @@ function bindZoom(){
   const release = e => {
     pts.delete(e.pointerId);
     pinch = pts.size === 2 ? spread().d : 0;
-    if(!pts.size) mapSvg.classList.remove("dragging");
+    if(!pts.size){ held = false; mapSvg.classList.remove("dragging"); }
   };
   mapSvg.addEventListener("pointerup", release);
   mapSvg.addEventListener("pointercancel", release);
