@@ -6,10 +6,13 @@ build tooling, no dependencies, standard library only.
 
 ## Where it lives
 
-<https://billcchung.github.io/japan-snowfall/>
+<https://japan-snowfall.bill-chung.com/> — also reachable at
+<https://billcchung.github.io/japan-snowfall/>.
 
 Served by GitHub Pages from `main` at the repo root. Pushing to `main`
-redeploys it; there is no build step.
+redeploys it; there is no build step. The custom domain comes from `CNAME`,
+which Pages will delete from the branch if the domain is cleared in the repo
+settings — leave the file alone unless you are changing the domain.
 
 ## Coverage
 
