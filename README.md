@@ -51,7 +51,7 @@ source.
 | `plan.html` | Multi-resort trip planner. Generated — edit `plan-template.html`. |
 | `trends.html` | Season-by-season change per resort. Generated — edit `trends-template.html`. |
 | `map.html` | Every snow-measuring station in Japan, mapped. Generated — edit `map-template.html`. |
-| `*-template.html` | Markup for the three pages. `/*__DATA__*/null`, `/*__GROUPS__*/null`, `/*__SEASON__*/null` and `/*__TOTAL__*/0` are where the data lands. |
+| `*-template.html` | Markup for the four pages. `/*__DATA__*/null`, `/*__GROUPS__*/null`, `/*__SEASON__*/null` and `/*__TOTAL__*/0` are where the data lands. |
 | `site.css`, `site.js` | Shared styling and shared behaviour — picker, date controls, stats, daily cache. Each page defines its own `renderPage()`. |
 | `jma_snowfall.py` | The Japan fetcher: `discover`, `fetch`, `verify`, `daily`. Knows JMA and nothing else. |
 | `site.py` | `build` — registry plus CSVs to HTML. Knows no weather service. |

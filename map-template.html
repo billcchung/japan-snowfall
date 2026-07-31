@@ -280,7 +280,11 @@ function drawRank(){
   const all = visible();
   const named = metric === "recent" ? "the last 20 seasons"
               : metric === "mean" ? "each station's whole record" : "the single best year";
-  el("rankhint").innerHTML = `The 40 snowiest of ${all.length} stations, by ${named}`
+  // The filters can leave fewer than the 40 the table would otherwise show.
+  el("rankhint").innerHTML =
+    (rows.length < all.length ? `The ${rows.length} snowiest of ${all.length} stations`
+                              : `All ${all.length} matching stations`)
+    + `, by ${named}`
     + (minElev ? `, at ${minElev}m or higher` : "")
     + (region ? `, in ${region}` : "") + `. Click a row to find it on the map.`;
 }
