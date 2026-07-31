@@ -40,7 +40,8 @@ MONTH_DAYS = {10: 31, 11: 30, 12: 31, 1: 31, 2: 29, 3: 31, 4: 30, 5: 31}
 
 PAGES = (("template.html", "index.html"),
          ("plan-template.html", "plan.html"),
-         ("trends-template.html", "trends.html"))
+         ("trends-template.html", "trends.html"),
+         ("map-template.html", "map.html"))
 
 
 def load_registry():

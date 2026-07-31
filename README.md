@@ -27,6 +27,7 @@ python3 jma_snowfall.py discover
 python3 jma_snowfall.py fetch
 python3 jma_snowfall.py verify
 python3 jma_snowfall.py daily
+python3 jma_snowfall.py survey
 python3 site.py build
 ```
 
@@ -35,8 +36,11 @@ to hammer the site. `discover` is one request per prefecture, about 50.
 `fetch` is one request per surface station but one *per year of record* per
 AMeDAS station, roughly 1,400 in all. `daily` is one request per station-month:
 about 14,000 from cold, and ~300 on a weekly run because cached months are
-skipped. Pass resort names to `fetch` or `daily` to do a subset; both ignore
-resorts belonging to another source.
+skipped. `survey` is one request per snow-recording station, about 350, and is
+independent of the resort list — it uses JMA's annual (寒候年) tables, where a
+station's whole record arrives in a single request. Pass resort names to
+`fetch` or `daily` to do a subset; both ignore resorts belonging to another
+source.
 
 ## What's in the repo
 
@@ -46,12 +50,14 @@ resorts belonging to another source.
 | `index.html` | Per-resort records. Generated — edit `template.html`. |
 | `plan.html` | Multi-resort trip planner. Generated — edit `plan-template.html`. |
 | `trends.html` | Season-by-season change per resort. Generated — edit `trends-template.html`. |
+| `map.html` | Every snow-measuring station in Japan, mapped. Generated — edit `map-template.html`. |
 | `*-template.html` | Markup for the three pages. `/*__DATA__*/null`, `/*__GROUPS__*/null`, `/*__SEASON__*/null` and `/*__TOTAL__*/0` are where the data lands. |
 | `site.css`, `site.js` | Shared styling and shared behaviour — picker, date controls, stats, daily cache. Each page defines its own `renderPage()`. |
 | `jma_snowfall.py` | The Japan fetcher: `discover`, `fetch`, `verify`, `daily`. Knows JMA and nothing else. |
 | `site.py` | `build` — registry plus CSVs to HTML. Knows no weather service. |
 | `data/*.csv` | One file per resort, one row per season. Generated. |
 | `data/daily/*.json` | Daily new snow and snow depth, one file per station. Generated, cached. |
+| `data/stations.json` | Annual snowfall for every station in the country that records it, plus the whole network's coordinates. Feeds the map. |
 | `reference.json` | Resort elevations and claimed annual snowfall. |
 | `fixtures/niseko_kutchan.csv` | The hand-transcribed Kutchan table. `verify` checks the scrape against it. |
 | `seed_kutchan.py` | Prints that fixture to stdout: `python3 seed_kutchan.py > fixtures/niseko_kutchan.csv`. |

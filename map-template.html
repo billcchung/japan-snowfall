@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where the snow falls — every Japanese station that measures it</title>
+<meta name="description" content="Average annual snowfall at every Japan Meteorological Agency station that records it, mapped. Click a station to see its record, elevation and municipality.">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="Where the snow falls — every Japanese station that measures it">
+<meta property="og:description" content="Annual snowfall across Japan's whole observing network, not just the places that already have lifts.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+.controls{display:flex;flex-wrap:wrap;gap:16px 26px;align-items:baseline;margin:0 0 18px}
+.controls label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--dim)
+}
+.controls select{
+  font-family:var(--mono);font-size:13px;letter-spacing:.02em;text-transform:none;
+  background:var(--void);color:var(--ice);border:1px solid var(--edge2);
+  padding:6px 8px;margin-left:5px;border-radius:2px;cursor:pointer
+}
+.controls select:focus-visible{outline:2px solid var(--s3);outline-offset:1px}
+
+.maprow{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.mapwrap{flex:1 1 460px;min-width:320px;position:relative}
+.mapwrap svg{display:block;width:100%;height:auto;max-height:76vh;touch-action:manipulation}
+.net{fill:#33445A}
+.stn{cursor:pointer;stroke:var(--void);stroke-width:.4}
+.stn:hover{stroke:#fff;stroke-width:1}
+.stn.sel{stroke:#fff;stroke-width:1.6}
+.mlabel{fill:var(--dim);font-family:var(--mono);font-size:7px;letter-spacing:.06em}
+
+.detail{
+  flex:0 1 300px;min-width:260px;background:var(--panel);
+  border:1px solid var(--edge);padding:18px
+}
+.detail h3{margin:0 0 4px;font-size:15px;letter-spacing:0}
+.detail .ja{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.08em}
+.detail dl{display:grid;grid-template-columns:auto auto;gap:7px 14px;margin:16px 0 0}
+.detail dt{font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim)}
+.detail dd{margin:0;font-family:var(--mono);font-size:12px;color:var(--ice);
+  text-align:right;font-variant-numeric:tabular-nums}
+.detail .big{font-family:var(--mono);font-size:30px;color:var(--ice);margin:12px 0 0}
+.detail .big small{font-size:12px;color:var(--mute);margin-left:4px}
+.detail .none{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.7}
+.detail .isresort{
+  margin:14px 0 0;padding:8px 10px;border-left:2px solid var(--s4);
+  font-family:var(--mono);font-size:11px;color:var(--mute);line-height:1.6
+}
+
+.scale{display:flex;align-items:center;gap:0;margin:14px 0 0;font-family:var(--mono);
+  font-size:10px;color:var(--dim);flex-wrap:wrap}
+.scale i{width:30px;height:9px;display:block}
+.scale span{padding:0 7px;letter-spacing:.08em}
+
+table.rank{border-collapse:collapse;font-family:var(--mono);font-size:12px;
+  width:100%;min-width:560px}
+table.rank th{
+  font-weight:500;color:var(--dim);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;padding:0 10px 10px;text-align:right;white-space:nowrap
+}
+table.rank th:first-child,table.rank td:first-child{text-align:left;padding-left:0}
+table.rank th:nth-child(2),table.rank td:nth-child(2){text-align:left}
+table.rank td{padding:8px 10px;text-align:right;border-top:1px solid var(--edge);
+  font-variant-numeric:tabular-nums;color:var(--mute);white-space:nowrap;cursor:pointer}
+table.rank tr:hover td{color:var(--ice)}
+table.rank tr.sel td{color:#fff;background:var(--panel)}
+table.rank td.who{color:var(--ice)}
+table.rank td .sub{color:var(--dim);font-size:10px;letter-spacing:.06em}
+table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
+  vertical-align:middle;font-style:normal}
+.tablewrap{width:100%;overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Where the snow actually falls
+    <span class="ja">降雪の深さ年合計 — 全観測点</span></h1>
+  <p class="lede">Every station in Japan that measures snowfall, not just the places that
+  already have lifts. Average annual new snow over each station's full record, so you can
+  see which towns get buried and which merely have a reputation.</p>
+</header>
+
+<nav class="pages" aria-label="Pages">
+  <a href="index.html">Records</a>
+  <a href="plan.html">Trip planner</a>
+  <a href="trends.html">Trends</a>
+  <a href="map.html" aria-current="page">Snow map</a>
+</nav>
+
+<div id="gap" class="warn" hidden></div>
+
+<section>
+  <h2>The map</h2>
+  <p class="hint">Faint grey marks every weather station in the country — enough of them,
+  scattered widely enough, to trace the shape of Japan without a basemap. Coloured points
+  are the ones that measure snow, shaded by how much they average in a year. Click one.</p>
+  <div class="controls">
+    <label>Rank by
+      <select id="metric" aria-label="Which figure to map">
+        <option value="recent">the last 20 seasons</option>
+        <option value="mean">the whole record</option>
+        <option value="best">the single best year</option>
+      </select>
+    </label>
+    <label>Station at least
+      <select id="minelev" aria-label="Minimum station elevation">
+        <option value="0">any elevation</option>
+        <option value="200">200 m</option>
+        <option value="400">400 m</option>
+        <option value="600">600 m</option>
+        <option value="800">800 m</option>
+      </select>
+    </label>
+    <label>Region
+      <select id="region" aria-label="Region"></select>
+    </label>
+  </div>
+  <div class="maprow">
+    <div class="mapwrap" id="map"></div>
+    <aside class="detail" id="detail"></aside>
+  </div>
+  <div class="scale" id="scale"></div>
+</section>
+
+<section>
+  <h2>The snowiest places on record</h2>
+  <p class="hint" id="rankhint"></p>
+  <div class="tablewrap"><table class="rank" id="rank"><thead></thead><tbody></tbody></table></div>
+</section>
+
+<section>
+  <h2>Reading this as a site survey</h2>
+  <p class="hint">Worth being blunt about what this can and cannot tell you, if the question
+  is where to build.</p>
+  <p class="verdict" id="caveats"></p>
+</section>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const GROUPS = /*__GROUPS__*/null;
+const TOTAL = /*__TOTAL__*/0;
+const SEASON = /*__SEASON__*/null;
+</script>
+<script>
+const el = id => document.getElementById(id);
+const STOPS = [0, 200, 400, 600, 800, 1200];
+const RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
+const shade = cm => {
+  if(!cm) return "var(--s0)";
+  let i = 1; while(i < STOPS.length && cm >= STOPS[i]) i++;
+  return `var(${RAMP[i]})`;
+};
+
+/* Stations already backing a resort on this site, so the map can say so
+   rather than presenting Kutchan as an undiscovered opportunity. */
+const RESORT_AT = {};
+for(const k in (DATA || {})){
+  const id = DATA[k].station_id;
+  if(id) (RESORT_AT[id] = RESORT_AT[id] || []).push(DATA[k].name);
+}
+
+let survey = null, metric = "recent", minElev = 0, region = "", picked = null;
+
+/* Remote Pacific and subtropical islands are in the network because JMA flags
+   every surface station as snow-capable. They record no snow and would stretch
+   the map across empty ocean, so the view is clipped to the main archipelago. */
+const BOX = {lat0: 30.8, lat1: 45.7, lon0: 129.3, lon1: 146.0};
+const inBox = p => p.lat >= BOX.lat0 && p.lat <= BOX.lat1
+                && p.lon >= BOX.lon0 && p.lon <= BOX.lon1;
+
+function project(){
+  // Equirectangular, with longitudes squeezed by cos(mid-latitude) so the
+  // country is not stretched sideways.
+  const midlat = (BOX.lat0 + BOX.lat1) / 2 * Math.PI / 180;
+  const kx = Math.cos(midlat);
+  const w = (BOX.lon1 - BOX.lon0) * kx, h = BOX.lat1 - BOX.lat0;
+  const W = 620, H = Math.round(W * h / w);
+  return {
+    W, H,
+    x: lon => (lon - BOX.lon0) * kx / w * W,
+    y: lat => H - (lat - BOX.lat0) / h * H,
+  };
+}
+
+function visible(){
+  return survey.stations.filter(s =>
+    inBox(s) && (s.elev == null || s.elev >= minElev)
+    && (!region || s.region === region) && s[metric] > 0);
+}
+
+function drawMap(){
+  const p = project();
+  const rows = visible();
+  const max = Math.max(1, ...rows.map(s => s[metric]));
+  let g = "";
+  survey.network.forEach(([lat, lon]) => {
+    if(lat < BOX.lat0 || lat > BOX.lat1 || lon < BOX.lon0 || lon > BOX.lon1) return;
+    g += `<circle class="net" cx="${p.x(lon).toFixed(1)}" cy="${p.y(lat).toFixed(1)}" r="1.5"/>`;
+  });
+  // Biggest last, so the heaviest snowfall is never hidden under a lighter point.
+  [...rows].sort((a,b) => a[metric] - b[metric]).forEach(s => {
+    const r = 2.2 + 4.6 * Math.sqrt(s[metric] / max);
+    g += `<circle class="stn${picked === s.id ? " sel" : ""}" data-id="${s.id}" `
+      + `cx="${p.x(s.lon).toFixed(1)}" cy="${p.y(s.lat).toFixed(1)}" `
+      + `r="${r.toFixed(1)}" fill="${shade(s[metric])}">`
+      + `<title>${s.name} — ${Math.round(s[metric])}cm/yr</title></circle>`;
+  });
+  el("map").innerHTML =
+    `<svg viewBox="0 0 ${p.W} ${p.H}" role="img" aria-label="Annual snowfall by weather station across Japan">${g}</svg>`;
+  el("map").querySelectorAll(".stn").forEach(c => {
+    c.onclick = () => { picked = c.dataset.id; drawMap(); drawDetail(); drawRank(); };
+  });
+}
+
+function drawScale(){
+  const L = el("scale");
+  L.innerHTML = "<span>0</span>";
+  STOPS.slice(1).concat([null]).forEach((s,i) => {
+    L.insertAdjacentHTML("beforeend",
+      `<i style="background:var(${RAMP[i+1]})"></i><span>${s ? s : "1200+"}</span>`);
+  });
+  L.insertAdjacentHTML("beforeend", "<span>cm of new snow per year</span>");
+}
+
+function drawDetail(){
+  const s = survey.stations.find(x => x.id === picked);
+  if(!s){
+    el("detail").innerHTML = `<p class="none">Click any coloured point to see that
+      station's record — how much it averages, how high it sits, and how long it has
+      been measuring.</p>`;
+    return;
+  }
+  const at = RESORT_AT[s.id];
+  el("detail").innerHTML =
+    `<h3>${s.name}</h3><p class="ja">${s.kana} · ${s.region}</p>`
+    + `<p class="big">${Math.round(s[metric])}<small>cm / year</small></p>`
+    + `<dl>`
+    + `<dt>Last 20 seasons</dt><dd>${Math.round(s.recent)}cm</dd>`
+    + `<dt>Whole record</dt><dd>${Math.round(s.mean)}cm</dd>`
+    + `<dt>Best year</dt><dd>${Math.round(s.best)}cm</dd>`
+    + `<dt>Station height</dt><dd>${s.elev != null ? Math.round(s.elev) + "m" : "—"}</dd>`
+    + `<dt>Record</dt><dd>${s.from}–${s.to}</dd>`
+    + `<dt>Years</dt><dd>${s.years}</dd>`
+    + `</dl>`
+    + (at ? `<p class="isresort">Already on this site as <b>${at.join(" and ")}</b> —
+        this station is what those figures come from.</p>` : "");
+}
+
+function drawRank(){
+  const rows = visible().sort((a,b) => b[metric] - a[metric]).slice(0, 40);
+  el("rank").tHead.innerHTML = "<tr><th>#</th><th>Station</th><th>Region</th>"
+    + "<th>Height</th><th>Snow / year</th><th>Best year</th><th>Record</th></tr>";
+  el("rank").tBodies[0].innerHTML = rows.map((s,i) =>
+    `<tr class="${picked === s.id ? "sel" : ""}" data-id="${s.id}">`
+    + `<td>${i+1}</td>`
+    + `<td class="who"><i style="background:${shade(s[metric])}"></i>${s.name}`
+    + (RESORT_AT[s.id] ? `<br><span class="sub">${RESORT_AT[s.id].join(", ")}</span>` : "")
+    + `</td>`
+    + `<td>${s.region}</td>`
+    + `<td>${s.elev != null ? Math.round(s.elev) + "<span class='sub'>m</span>" : "—"}</td>`
+    + `<td>${Math.round(s[metric])}<span class='sub'>cm</span></td>`
+    + `<td>${Math.round(s.best)}<span class='sub'>cm</span></td>`
+    + `<td>${s.years}<span class='sub'> yr</span></td></tr>`).join("");
+  el("rank").tBodies[0].querySelectorAll("tr").forEach(tr => {
+    tr.onclick = () => { picked = tr.dataset.id; drawMap(); drawDetail(); drawRank(); };
+  });
+  const all = visible();
+  const named = metric === "recent" ? "the last 20 seasons"
+              : metric === "mean" ? "each station's whole record" : "the single best year";
+  el("rankhint").innerHTML = `The 40 snowiest of ${all.length} stations, by ${named}`
+    + (minElev ? `, at ${minElev}m or higher` : "")
+    + (region ? `, in ${region}` : "") + `. Click a row to find it on the map.`;
+}
+
+function drawCaveats(){
+  const s = survey.stations.filter(inBox);
+  const top = [...s].sort((a,b) => b.recent - a.recent).slice(0, 20);
+  const topFree = top.filter(x => !RESORT_AT[x.id]).length;
+  el("caveats").innerHTML =
+    `A station is one thermometer in one municipality, almost always in the valley
+     where people live rather than on the hill above it — which is exactly why the
+     resorts on this site average a kilometre below their own summits. A town reading
+     ${Math.round(top[0].recent)}cm a year is telling you the mountain behind it gets
+     considerably more, not that you should build at the station.<br><br>
+     What this map answers is where snow reliably falls. What it says nothing about is
+     vertical relief, aspect, avalanche terrain, road access, land you could actually
+     buy, or whether the slope above that town is a workable fall line. Of the twenty
+     snowiest stations on this map, ${topFree} back no resort here — which mostly means
+     the terrain, the access or the economics did not work, not that ${topFree}
+     opportunities are sitting unclaimed.<br><br>
+     Japan's ski industry peaked in the early nineties and has been closing lifts since.
+     Snow was never the constraint.`;
+}
+
+function boot(){
+  fetch("data/stations.json").then(r => r.json()).then(raw => {
+    survey = raw;
+    const regions = [...new Set(survey.stations.filter(inBox).map(s => s.region))].sort();
+    const rs = el("region");
+    rs.innerHTML = '<option value="">everywhere</option>'
+      + regions.map(r => `<option value="${r}">${r}</option>`).join("");
+    el("metric").onchange = () => { metric = el("metric").value; drawMap(); drawRank(); drawDetail(); };
+    el("minelev").onchange = () => { minElev = Number(el("minelev").value); drawMap(); drawRank(); };
+    rs.onchange = () => { region = rs.value; drawMap(); drawRank(); };
+    drawScale(); drawMap(); drawRank(); drawDetail(); drawCaveats();
+  }).catch(() => {
+    el("gap").hidden = false;
+    el("gap").innerHTML = "No survey data yet. Run <code>python3 jma_snowfall.py survey</code>, "
+      + "then <code>python3 site.py build</code>.";
+  });
+  el("foot").innerHTML =
+    "Source: Japan Meteorological Agency, 過去の気象データ検索 "
+    + "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>), element "
+    + "降雪の深さ合計 by 寒候年 — the cold-season year running "
+    + "1 August to 31 July, which is how JMA files snow. Stations with fewer than ten "
+    + "years of record are left out. Positions come from JMA's own station list; the "
+    + "map is a plain equirectangular projection with no basemap, so treat it as a "
+    + "scatter of real coordinates rather than a survey chart.";
+}
+boot();
+</script>
+</body>
+</html>

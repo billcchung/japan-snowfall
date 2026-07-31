@@ -10,6 +10,7 @@ Stdlib only. Run from anywhere with access to data.jma.go.jp.
     python3 jma_snowfall.py fetch niseko hakuba
     python3 jma_snowfall.py verify        # Kutchan vs the transcribed table
     python3 jma_snowfall.py daily         # daily snow and depth, incremental
+    python3 jma_snowfall.py survey        # annual totals for every snow station
 
 then `python3 site.py build` to regenerate the pages.
 
@@ -123,7 +124,7 @@ def _args(blob):
 
 
 def _shape(args):
-    """Locate elevation, and the snow flag that follows it.
+    """Locate position, elevation, and the snow flag that follows it.
 
     viewPoint(kind, block, name, kana, lat_d, lat_m, lon_d, lon_m, elev,
               f_pre, f_wsp, f_tem, f_sun, f_snc, f_hum, ...) -- so once the
@@ -153,8 +154,11 @@ def _shape(args):
             # surface-station pick -- only an empty table will.
             at = 4 + i + 4 + 5
             snow = args[at] == "1" if at < len(args) else None
-            return elev, snow
-    return None, None
+            # JMA gives position as degrees and minutes, separately.
+            return {"elevation_m": elev, "snow": snow,
+                    "lat": round(lat_d + lat_m / 60, 4),
+                    "lon": round(lon_d + lon_m / 60, 4)}
+    return {"elevation_m": None, "snow": None, "lat": None, "lon": None}
 
 
 def discover():
@@ -171,11 +175,10 @@ def discover():
             a = _args(blob)
             if len(a) < 4 or a[0] not in ("s", "a") or not a[1].isdigit():
                 continue
-            elev, snow = _shape(a)
             index[f"{prec}:{a[2]}"] = {
                 "prec_no": prec, "region": label, "block_no": a[1],
                 "kind": a[0], "name_ja": a[2], "kana": a[3],
-                "elevation_m": elev, "snow": snow,
+                **_shape(a),
             }
             found += 1
         if not found:
@@ -185,6 +188,7 @@ def discover():
                     "prec_no": prec, "region": label, "block_no": block,
                     "kind": "s" if len(block) == 5 else "a",
                     "name_ja": "", "kana": "", "elevation_m": None, "snow": None,
+                    "lat": None, "lon": None,
                 }
                 found += 1
             if found:
@@ -568,6 +572,99 @@ def fetch(names):
 
 
 # --------------------------------------------------------------------------
+# nationwide survey
+# --------------------------------------------------------------------------
+
+# Annual (寒候年) totals, every year of record in one request per station.
+# The per-year AMeDAS loop `fetch` uses would be ~15,000 requests across the
+# whole network; this is one per station.
+ANNUAL_URL = {
+    "s": BASE + "/view/annually_s.php?prec_no={prec}&block_no={block}"
+                "&year=&month=&day=&view=",
+    "a": BASE + "/view/annually_a.php?prec_no={prec}&block_no={block}"
+                "&year=&month=&day=&view=",
+}
+# Row width is fixed per station kind -- 28 surface, 21 AMeDAS -- so the
+# 降雪の深さ合計 column can be counted from the end. Surface rows carry four
+# trailing columns (雲量, 雪日数, 霧日数, 雷日数) that AMeDAS rows do not.
+ANNUAL_SNOW_COL = {"s": -7, "a": -3}
+
+SURVEY = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                      "data", "stations.json")
+
+
+def annual_snow(prec_no, block_no, kind):
+    """{cold-season year: total new snow in cm} for one station."""
+    url = ANNUAL_URL[kind].format(prec=prec_no, block=block_no)
+    html = get(url, tries=2)
+    out = {}
+    for row_html in ROW.findall(html):
+        vals = cells(row_html)
+        if len(vals) < abs(ANNUAL_SNOW_COL[kind]) + 1:
+            continue
+        m = re.match(r"^(\d{4})$", vals[0])
+        if not m:
+            continue
+        v = parse_number(vals[ANNUAL_SNOW_COL[kind]])
+        if v is not None:
+            out[int(m.group(1))] = v
+    return out
+
+
+def survey(names=None):
+    """Annual snowfall for every station in the country that records it.
+
+    Feeds the map: this is the whole observing network, not the resort list,
+    so it answers where the snow actually falls rather than where somebody
+    already built lifts.
+    """
+    index = load_index()
+    todo = [v for v in index.values() if v.get("snow") and v.get("lat") is not None]
+    if names:
+        todo = [v for v in todo if v["name_ja"] in names]
+    done, out = 0, []
+    for st in todo:
+        try:
+            years = annual_snow(st["prec_no"], st["block_no"], st["kind"])
+        except Exception as e:
+            sys.stderr.write(f"{st['name_ja']}: {e}\n")
+            continue
+        # A station with a handful of years cannot be compared with one that
+        # has fifty, so require a decade before it goes on the map.
+        if len(years) < 10:
+            continue
+        ys = sorted(years)
+        recent = [years[y] for y in ys[-20:]]
+        out.append({
+            "id": f"{st['prec_no']}-{st['block_no']}",
+            "name": st["name_ja"], "kana": st["kana"], "region": st["region"],
+            "prec": st["prec_no"], "kind": st["kind"],
+            "lat": st["lat"], "lon": st["lon"], "elev": st["elevation_m"],
+            "years": len(ys), "from": ys[0], "to": ys[-1],
+            "mean": round(sum(years.values()) / len(ys)),
+            "recent": round(sum(recent) / len(recent)),
+            "best": round(max(years.values())),
+        })
+        done += 1
+        if done % 25 == 0:
+            print(f"  {done}/{len(todo)} stations")
+        time.sleep(1.0)
+    out.sort(key=lambda r: -r["recent"])
+    os.makedirs(os.path.dirname(SURVEY), exist_ok=True)
+    # Every station's position, snow or not. 1,300 points scattered over the
+    # country trace its shape well enough to orient a map without shipping a
+    # basemap or inventing a coastline.
+    network = [[v["lat"], v["lon"]] for v in index.values()
+               if v.get("lat") is not None]
+    with open(SURVEY, "w", encoding="utf-8") as f:
+        json.dump({"stations": out, "network": network},
+                  f, ensure_ascii=False, separators=(",", ":"))
+    print(f"{len(out)} stations with 10+ years -> {SURVEY}")
+    for r in out[:5]:
+        print(f"  {r['name']:8} {r['region']:6} {r['recent']:>5}cm/yr  {r['elev']:>6}m")
+
+
+# --------------------------------------------------------------------------
 # regression check
 # --------------------------------------------------------------------------
 
@@ -616,6 +713,8 @@ if __name__ == "__main__":
         discover()
     elif cmd == "fetch":
         fetch(sys.argv[2:] or list(RESORTS))
+    elif cmd == "survey":
+        survey(sys.argv[2:] or None)
     elif cmd == "daily":
         daily(sys.argv[2:] or list(RESORTS))
     elif cmd == "verify":
