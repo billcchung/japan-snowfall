@@ -29,12 +29,33 @@
 
 .maprow{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
 .mapwrap{flex:1 1 460px;min-width:320px;position:relative}
-.mapwrap svg{display:block;width:100%;height:auto;max-height:76vh;touch-action:manipulation}
+.mapwrap svg{display:block;width:100%;height:auto;max-height:76vh;cursor:grab}
+.mapwrap svg.dragging{cursor:grabbing}
+.mapwrap svg:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
 .net{fill:#33445A}
-.stn{cursor:pointer;stroke:var(--void);stroke-width:.4}
+/* Strokes and labels are sized in screen pixels, so zooming spreads the points
+   apart instead of inflating every outline with them. */
+.stn{cursor:pointer;stroke:var(--void);stroke-width:.4;vector-effect:non-scaling-stroke}
 .stn:hover{stroke:#fff;stroke-width:1}
 .stn.sel{stroke:#fff;stroke-width:1.6}
-.mlabel{fill:var(--dim);font-family:var(--mono);font-size:7px;letter-spacing:.06em}
+.mlabel{fill:var(--ice);font-family:var(--mono);letter-spacing:.04em;
+  paint-order:stroke;stroke:var(--void);stroke-width:2px;
+  vector-effect:non-scaling-stroke;pointer-events:none}
+
+.zoomtip{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(8,12,18,.6);color:var(--ice);font-family:var(--mono);font-size:12px;
+  letter-spacing:.08em;opacity:0;pointer-events:none;transition:opacity .2s
+}
+.zoomtip.on{opacity:1}
+.zoomui{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px}
+.zoomui button{
+  font-family:var(--mono);font-size:12px;line-height:1;padding:6px 8px;min-width:30px;
+  background:var(--void);color:var(--ice);border:1px solid var(--edge2);
+  border-radius:2px;cursor:pointer
+}
+.zoomui button:hover:not(:disabled){border-color:var(--s3);color:#fff}
+.zoomui button:disabled{opacity:.35;cursor:default}
 
 .detail{
   flex:0 1 300px;min-width:260px;background:var(--panel);
@@ -106,7 +127,8 @@ table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
   <p class="hint">Faint grey marks every weather station in the country — enough of them,
   scattered widely enough, to trace the shape of Japan without a basemap. Coloured points
   are the ones that measure snow, shaded by how much they averaged over the seasons you
-  choose. Click one.</p>
+  choose. Click one. Pinch or ⌘/ctrl-scroll to zoom, drag to pan, double-click to go
+  deeper — station names appear once you are in far enough to read them.</p>
   <div class="controls">
     <label>Seasons
       <select id="y0" aria-label="First season"></select>
@@ -134,7 +156,15 @@ table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
     </label>
   </div>
   <div class="maprow">
-    <div class="mapwrap" id="map"></div>
+    <div class="mapwrap">
+      <div id="map"></div>
+      <div class="zoomtip" id="zoomtip" aria-hidden="true">pinch, or ⌘/ctrl + scroll, to zoom</div>
+      <div class="zoomui">
+        <button id="zoomin" type="button" title="Zoom in" aria-label="Zoom in">+</button>
+        <button id="zoomout" type="button" title="Zoom out" aria-label="Zoom out">−</button>
+        <button id="zoomreset" type="button" title="Show the whole country">Reset</button>
+      </div>
+    </div>
     <aside class="detail" id="detail"></aside>
   </div>
   <div class="scale" id="scale"></div>
@@ -245,8 +275,35 @@ function visible(){
   return matching().filter(s => stat(s).n >= minSeasons() && val(s) > 0);
 }
 
+/* Zoom lives in map units and survives a redraw, so changing a filter does not
+   throw away where you were looking. */
+let world = null, view = null, mapSvg = null;
+let netDots = [], stnDots = [], labels = [], dragged = false;
+const MAXK = 40;
+const zoomK = () => world ? world.W / view.w : 1;
+
+function clampView(){
+  view.w = Math.min(world.W, Math.max(world.W / MAXK, view.w));
+  view.h = view.w * world.H / world.W;
+  view.x = Math.min(world.W - view.w, Math.max(0, view.x));
+  view.y = Math.min(world.H - view.h, Math.max(0, view.y));
+}
+
+// Zoom about a fixed point, so whatever is under the cursor stays under it.
+function zoomAt(m, factor){
+  const w = Math.min(world.W, Math.max(world.W / MAXK, view.w / factor));
+  const g = w / view.w;
+  view.x = m.x - (m.x - view.x) * g;
+  view.y = m.y - (m.y - view.y) * g;
+  view.w = w;
+  applyView();
+}
+const zoomCentre = f => zoomAt({x: view.x + view.w / 2, y: view.y + view.h / 2}, f);
+
 function drawMap(){
   const p = project();
+  world = {W: p.W, H: p.H};
+  if(!view) view = {x: 0, y: 0, w: p.W, h: p.H};
   const rows = visible();
   const max = Math.max(1, ...rows.map(val));
   let g = "";
@@ -255,17 +312,159 @@ function drawMap(){
     g += `<circle class="net" cx="${p.x(lon).toFixed(1)}" cy="${p.y(lat).toFixed(1)}" r="1.5"/>`;
   });
   // Biggest last, so the heaviest snowfall is never hidden under a lighter point.
+  labels = [];
   [...rows].sort((a,b) => val(a) - val(b)).forEach(s => {
     const r = 2.2 + 4.6 * Math.sqrt(val(s) / max);
+    const x = p.x(s.lon), y = p.y(s.lat);
+    labels.push({x, y, r, name: s.name, v: val(s)});
     g += `<circle class="stn${picked === s.id ? " sel" : ""}" data-id="${s.id}" `
-      + `cx="${p.x(s.lon).toFixed(1)}" cy="${p.y(s.lat).toFixed(1)}" `
+      + `cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" data-r="${r.toFixed(2)}" `
       + `r="${r.toFixed(1)}" fill="${shade(val(s))}">`
       + `<title>${s.name} — ${Math.round(val(s))}cm/yr</title></circle>`;
   });
   el("map").innerHTML =
-    `<svg viewBox="0 0 ${p.W} ${p.H}" role="img" aria-label="Annual snowfall by weather station across Japan">${g}</svg>`;
-  el("map").querySelectorAll(".stn").forEach(c => {
-    c.onclick = () => { picked = c.dataset.id; drawMap(); drawDetail(); drawRank(); };
+    `<svg viewBox="0 0 ${p.W} ${p.H}" tabindex="0" role="img" aria-label="Annual `
+    + `snowfall by weather station across Japan. Zoomable; the table below lists the `
+    + `same stations.">${g}<g id="mlabels"></g></svg>`;
+  mapSvg = el("map").querySelector("svg");
+  // Match the box to the drawing: without this the 76vh height cap leaves dead
+  // margins either side that look like map but do not respond like it.
+  mapSvg.style.maxWidth = (76 * p.W / p.H).toFixed(1) + "vh";
+  netDots = [...mapSvg.querySelectorAll(".net")];
+  stnDots = [...mapSvg.querySelectorAll(".stn")];
+  stnDots.forEach(c => {
+    // A pan that ends on a point must not count as picking it.
+    c.onclick = () => {
+      if(dragged) return;
+      picked = c.dataset.id; drawMap(); drawDetail(); drawRank();
+    };
+  });
+  bindZoom();
+  applyView();
+}
+
+function applyView(){
+  if(!mapSvg) return;
+  clampView();
+  const k = zoomK();
+  // Dots are counter-scaled to hold roughly their screen size, growing a little
+  // with depth for an easier target: at 18x they are half again as big while the
+  // gaps between them are eighteen times wider, which is the point of zooming.
+  const shrink = Math.pow(k, 0.85);
+  mapSvg.setAttribute("viewBox",
+    `${view.x.toFixed(2)} ${view.y.toFixed(2)} ${view.w.toFixed(2)} ${view.h.toFixed(2)}`);
+  const nr = (1.5 / shrink).toFixed(2);
+  netDots.forEach(c => c.setAttribute("r", nr));
+  stnDots.forEach(c => c.setAttribute("r", (c.dataset.r / shrink).toFixed(2)));
+  // One finger scrolls the page while the whole country is in view; once zoomed
+  // in it has to pan the map instead, or you can never reach the edges.
+  mapSvg.style.touchAction = k > 1.01 ? "none" : "pan-y";
+  el("zoomout").disabled = el("zoomreset").disabled = k <= 1.001;
+  el("zoomin").disabled = k >= MAXK - 0.001;
+  drawLabels(k, shrink);
+}
+
+/* Names appear once the view is tight enough for them to mean something, and
+   only for the stations in frame -- the point of zooming in is to find out
+   which town a dot is. */
+function drawLabels(k, shrink){
+  const g = mapSvg.querySelector("#mlabels");
+  if(k < 2.5){ g.innerHTML = ""; return; }
+  const pad = view.w * 0.02;
+  const shown = labels.filter(d => d.x > view.x - pad && d.x < view.x + view.w + pad
+                                && d.y > view.y - pad && d.y < view.y + view.h + pad)
+                      .sort((a,b) => b.v - a.v).slice(0, 45);
+  g.innerHTML = shown.map(d =>
+    `<text class="mlabel" x="${(d.x + d.r / shrink + 3 / k).toFixed(2)}" `
+    + `y="${(d.y + 4 / k).toFixed(2)}" font-size="${(11.5 / k).toFixed(2)}">${d.name}</text>`
+  ).join("");
+}
+
+let tipTimer = 0;
+function flashTip(){
+  const t = el("zoomtip");
+  t.classList.add("on");
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => t.classList.remove("on"), 1100);
+}
+
+/* Wheel, drag, pinch, double-click and the arrow keys. Bound per redraw
+   because the SVG is rebuilt; the buttons outside it are bound once. */
+function bindZoom(){
+  const pts = new Map();
+  let prev = null, pinch = 0;
+  // Screen to map through the SVG's own matrix. Doing the arithmetic by hand
+  // against the element's box is wrong the moment max-height letterboxes the
+  // drawing inside it, and the cursor stops being the thing you zoom about.
+  const pt = mapSvg.createSVGPoint();
+  const toMap = (cx, cy) => {
+    const m = mapSvg.getScreenCTM();
+    if(!m) return {x: view.x + view.w / 2, y: view.y + view.h / 2};
+    pt.x = cx; pt.y = cy;
+    const p = pt.matrixTransform(m.inverse());
+    return {x: p.x, y: p.y};
+  };
+  const spread = () => {
+    const [a, b] = [...pts.values()];
+    return {d: Math.hypot(a.x - b.x, a.y - b.y),
+            cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2};
+  };
+
+  // A plain wheel keeps scrolling the page -- this map is 76vh tall and sits in
+  // the middle of a long article, so swallowing the wheel would trap anyone
+  // reading past it. A trackpad pinch arrives as ctrl+wheel, so pinching works
+  // without anyone being told.
+  mapSvg.addEventListener("wheel", e => {
+    if(!(e.ctrlKey || e.metaKey)){ flashTip(); return; }
+    e.preventDefault();
+    zoomAt(toMap(e.clientX, e.clientY), Math.exp(-e.deltaY * 0.002));
+  }, {passive: false});
+
+  mapSvg.addEventListener("dblclick", e => zoomAt(toMap(e.clientX, e.clientY), 2));
+
+  mapSvg.addEventListener("pointerdown", e => {
+    mapSvg.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    dragged = false;
+    prev = {x: e.clientX, y: e.clientY};
+    pinch = pts.size === 2 ? spread().d : 0;
+    mapSvg.classList.add("dragging");
+  });
+
+  mapSvg.addEventListener("pointermove", e => {
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if(pts.size >= 2){
+      const s = spread();
+      if(pinch) zoomAt(toMap(s.cx, s.cy), s.d / pinch);
+      pinch = s.d; dragged = true;
+      return;
+    }
+    const a = toMap(prev.x, prev.y), b = toMap(e.clientX, e.clientY);
+    if(Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y) > 3) dragged = true;
+    prev = {x: e.clientX, y: e.clientY};
+    view.x -= b.x - a.x; view.y -= b.y - a.y;
+    applyView();
+  });
+
+  const release = e => {
+    pts.delete(e.pointerId);
+    pinch = pts.size === 2 ? spread().d : 0;
+    if(!pts.size) mapSvg.classList.remove("dragging");
+  };
+  mapSvg.addEventListener("pointerup", release);
+  mapSvg.addEventListener("pointercancel", release);
+
+  mapSvg.addEventListener("keydown", e => {
+    const step = view.w * 0.15, k = {ArrowLeft: [-1,0], ArrowRight: [1,0],
+      ArrowUp: [0,-1], ArrowDown: [0,1]}[e.key];
+    if(k){ view.x += k[0] * step; view.y += k[1] * step * world.H / world.W; }
+    else if(e.key === "+" || e.key === "=") zoomCentre(1.6);
+    else if(e.key === "-" || e.key === "_") zoomCentre(1 / 1.6);
+    else if(e.key === "0") view = {x: 0, y: 0, w: world.W, h: world.H};
+    else return;
+    e.preventDefault();
+    applyView();
   });
 }
 
@@ -435,6 +634,12 @@ function boot(){
       redraw();
     };
     drawScale(); redraw();
+    el("zoomin").onclick  = () => zoomCentre(1.6);
+    el("zoomout").onclick = () => zoomCentre(1 / 1.6);
+    el("zoomreset").onclick = () => {
+      view = {x: 0, y: 0, w: world.W, h: world.H};
+      applyView();
+    };
   }).catch(() => {
     el("gap").hidden = false;
     el("gap").innerHTML = "No survey data yet. Run <code>python3 jma_snowfall.py survey</code>, "
