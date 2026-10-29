@@ -122,3 +122,33 @@ code{font-family:var(--mono);color:var(--mute);background:var(--panel);padding:1
 }
 .pages a:hover{color:var(--ice)}
 .pages a[aria-current=page]{color:var(--ice);border-bottom-color:var(--s4)}
+
+/* ---------- language switcher ---------- */
+.pages{flex-wrap:wrap;row-gap:12px}
+.lang{margin-left:auto;display:flex;gap:2px;margin-bottom:-4px}
+.lang button{
+  font-family:var(--sans);font-size:12px;background:none;color:var(--dim);
+  border:1px solid transparent;border-radius:2px;padding:2px 9px;cursor:pointer;
+  transition:.14s;line-height:1.5
+}
+.lang button:hover{color:var(--ice)}
+.lang button[aria-pressed=true]{color:var(--ice);border-color:var(--edge2)}
+.lang button:focus-visible{outline:2px solid var(--s3);outline-offset:2px}
+
+/* ---------- CJK ---------- */
+/* Zen Kaku Gothic New is Japanese-only; Chinese readers get the Chinese forms
+   of shared characters (e.g. 溫 for 温) from a Traditional Chinese face, which
+   i18n.js fetches on demand. */
+html:lang(zh-Hant){
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,"Noto Sans TC","PingFang TC","Microsoft JhengHei",monospace;
+}
+html:lang(ja){
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Noto Sans JP",monospace;
+}
+/* The wide tracking on small caps labels suits Latin letters; CJK glyphs are
+   already evenly spaced and uppercase means nothing to them. */
+html:lang(ja) :is(.kicker,.pghead,h2,.stat dt,th,.pages a,.pickbar button,.pickbar span,.legend span),
+html:lang(zh-Hant) :is(.kicker,.pghead,h2,.stat dt,th,.pages a,.pickbar button,.pickbar span,.legend span){
+  letter-spacing:.04em
+}

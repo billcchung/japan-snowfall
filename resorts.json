@@ -1,6 +1,10 @@
 {
  "niseko": {
   "name": "Niseko",
+  "names": {
+   "ja": "ニセコ",
+   "zh-Hant": "新雪谷"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -12,6 +16,10 @@
  },
  "niseko-annupuri": {
   "name": "Niseko west",
+  "names": {
+   "ja": "ニセコ西部",
+   "zh-Hant": "新雪谷西部"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -23,6 +31,10 @@
  },
  "rusutsu": {
   "name": "Rusutsu",
+  "names": {
+   "ja": "ルスツ",
+   "zh-Hant": "留壽都"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -34,6 +46,10 @@
  },
  "kiroro": {
   "name": "Kiroro",
+  "names": {
+   "ja": "キロロ",
+   "zh-Hant": "喜樂樂"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -45,6 +61,10 @@
  },
  "sapporo": {
   "name": "Sapporo",
+  "names": {
+   "ja": "札幌",
+   "zh-Hant": "札幌"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -56,6 +76,10 @@
  },
  "furano": {
   "name": "Furano",
+  "names": {
+   "ja": "富良野",
+   "zh-Hant": "富良野"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -67,6 +91,10 @@
  },
  "tomamu": {
   "name": "Tomamu",
+  "names": {
+   "ja": "トマム",
+   "zh-Hant": "Tomamu"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -78,6 +106,10 @@
  },
  "asahidake": {
   "name": "Asahidake",
+  "names": {
+   "ja": "旭岳",
+   "zh-Hant": "旭岳"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -89,6 +121,10 @@
  },
  "sahoro": {
   "name": "Sahoro",
+  "names": {
+   "ja": "サホロ",
+   "zh-Hant": "Sahoro"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -100,6 +136,10 @@
  },
  "kamui": {
   "name": "Kamui",
+  "names": {
+   "ja": "カムイ",
+   "zh-Hant": "Kamui"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -111,6 +151,10 @@
  },
  "kokusai": {
   "name": "Sapporo Kokusai",
+  "names": {
+   "ja": "サッポロ国際",
+   "zh-Hant": "札幌國際"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -122,6 +166,10 @@
  },
  "otaru": {
   "name": "Otaru",
+  "names": {
+   "ja": "小樽",
+   "zh-Hant": "小樽"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -133,6 +181,10 @@
  },
  "nayoro": {
   "name": "Nayoro Piyashiri",
+  "names": {
+   "ja": "名寄ピヤシリ",
+   "zh-Hant": "名寄 Piyashiri"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -144,6 +196,10 @@
  },
  "shimokawa": {
   "name": "Shimokawa",
+  "names": {
+   "ja": "下川",
+   "zh-Hant": "下川"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -155,6 +211,10 @@
  },
  "sounkyo": {
   "name": "Sounkyo Kurodake",
+  "names": {
+   "ja": "層雲峡黒岳",
+   "zh-Hant": "層雲峽黑岳"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -166,6 +226,10 @@
  },
  "tokachi-dake": {
   "name": "Tokachidake",
+  "names": {
+   "ja": "十勝岳",
+   "zh-Hant": "十勝岳"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -177,6 +241,10 @@
  },
  "racey": {
   "name": "Mt. Racey",
+  "names": {
+   "ja": "マウントレースイ",
+   "zh-Hant": "Mt. Racey"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -188,6 +256,10 @@
  },
  "engaru": {
   "name": "Engaru Rock Valley",
+  "names": {
+   "ja": "えんがるロックバレー",
+   "zh-Hant": "遠軽 Rock Valley"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -199,6 +271,10 @@
  },
  "kitami": {
   "name": "Kitami Onneyu",
+  "names": {
+   "ja": "北見温根湯",
+   "zh-Hant": "北見溫根湯"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -210,6 +286,10 @@
  },
  "akan": {
   "name": "Akan",
+  "names": {
+   "ja": "阿寒",
+   "zh-Hant": "阿寒"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -221,6 +301,10 @@
  },
  "nukabira": {
   "name": "Nukabira",
+  "names": {
+   "ja": "ぬかびら源泉郷",
+   "zh-Hant": "糠平源泉鄉"
+  },
   "country": "Japan",
   "area": "Hokkaido",
   "source": "jma",
@@ -232,6 +316,10 @@
  },
  "hakkoda": {
   "name": "Hakkoda",
+  "names": {
+   "ja": "八甲田",
+   "zh-Hant": "八甲田"
+  },
   "country": "Japan",
   "area": "Tohoku",
   "source": "jma",
@@ -243,6 +331,10 @@
  },
  "appi": {
   "name": "Appi",
+  "names": {
+   "ja": "安比",
+   "zh-Hant": "安比"
+  },
   "country": "Japan",
   "area": "Tohoku",
   "source": "jma",
@@ -254,6 +346,10 @@
  },
  "geto": {
   "name": "Geto",
+  "names": {
+   "ja": "夏油",
+   "zh-Hant": "夏油"
+  },
   "country": "Japan",
   "area": "Tohoku",
   "source": "jma",
@@ -265,6 +361,10 @@
  },
  "zao": {
   "name": "Zao",
+  "names": {
+   "ja": "蔵王",
+   "zh-Hant": "藏王"
+  },
   "country": "Japan",
   "area": "Tohoku",
   "source": "jma",
@@ -276,6 +376,10 @@
  },
  "ani": {
   "name": "Ani",
+  "names": {
+   "ja": "阿仁",
+   "zh-Hant": "阿仁"
+  },
   "country": "Japan",
   "area": "Tohoku",
   "source": "jma",
@@ -287,6 +391,10 @@
  },
  "aomori-spring": {
   "name": "Aomori Spring",
+  "names": {
+   "ja": "青森スプリング",
+   "zh-Hant": "青森 Spring"
+  },
   "country": "Japan",
   "area": "Tohoku",
   "source": "jma",
@@ -298,6 +406,10 @@
  },
  "nekoma-alts": {
   "name": "Nekoma / Alts",
+  "names": {
+   "ja": "猫魔・アルツ",
+   "zh-Hant": "貓魔・Alts"
+  },
   "country": "Japan",
   "area": "Tohoku",
   "source": "jma",
@@ -309,6 +421,10 @@
  },
  "myoko": {
   "name": "Myoko",
+  "names": {
+   "ja": "妙高",
+   "zh-Hant": "妙高"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -320,6 +436,10 @@
  },
  "lotte-arai": {
   "name": "Lotte Arai",
+  "names": {
+   "ja": "ロッテアライ",
+   "zh-Hant": "樂天新井"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -331,6 +451,10 @@
  },
  "nozawa": {
   "name": "Nozawa Onsen",
+  "names": {
+   "ja": "野沢温泉",
+   "zh-Hant": "野澤溫泉"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -342,6 +466,10 @@
  },
  "madarao": {
   "name": "Madarao",
+  "names": {
+   "ja": "斑尾",
+   "zh-Hant": "斑尾"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -353,6 +481,10 @@
  },
  "hakuba": {
   "name": "Hakuba",
+  "names": {
+   "ja": "白馬",
+   "zh-Hant": "白馬"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -364,6 +496,10 @@
  },
  "hakuba-north": {
   "name": "Tsugaike / Cortina",
+  "names": {
+   "ja": "栂池・コルチナ",
+   "zh-Hant": "栂池・Cortina"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -375,6 +511,10 @@
  },
  "shiga-kogen": {
   "name": "Shiga Kogen",
+  "names": {
+   "ja": "志賀高原",
+   "zh-Hant": "志賀高原"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -386,6 +526,10 @@
  },
  "yuzawa": {
   "name": "Yuzawa",
+  "names": {
+   "ja": "湯沢",
+   "zh-Hant": "湯澤"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -397,6 +541,10 @@
  },
  "itoigawa": {
   "name": "Charmant Hiuchi",
+  "names": {
+   "ja": "シャルマン火打",
+   "zh-Hant": "Charmant 火打"
+  },
   "country": "Japan",
   "area": "Niigata & Nagano",
   "source": "jma",
@@ -408,6 +556,10 @@
  },
  "minakami": {
   "name": "Minakami",
+  "names": {
+   "ja": "みなかみ",
+   "zh-Hant": "水上"
+  },
   "country": "Japan",
   "area": "Gunma, Tochigi & Gifu",
   "source": "jma",
@@ -419,6 +571,10 @@
  },
  "nasu": {
   "name": "Nasu",
+  "names": {
+   "ja": "那須",
+   "zh-Hant": "那須"
+  },
   "country": "Japan",
   "area": "Gunma, Tochigi & Gifu",
   "source": "jma",
@@ -430,6 +586,10 @@
  },
  "takasu": {
   "name": "Takasu",
+  "names": {
+   "ja": "高鷲",
+   "zh-Hant": "高鷲"
+  },
   "country": "Japan",
   "area": "Gunma, Tochigi & Gifu",
   "source": "jma",

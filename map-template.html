@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Where the snow falls — every Japanese station that measures it</title>
-<meta name="description" content="Average annual snowfall at every Japan Meteorological Agency station that records it, mapped. Click a station to see its record, elevation and municipality.">
+<title data-i18n="map.title">Where the snow falls — every Japanese station that measures it</title>
+<meta name="description" data-i18n-attrs="content:map.desc" content="Average annual snowfall at every Japan Meteorological Agency station that records it, mapped. Click a station to see its record, elevation and municipality.">
 <meta name="color-scheme" content="dark">
-<meta property="og:title" content="Where the snow falls — every Japanese station that measures it">
-<meta property="og:description" content="Annual snowfall across Japan's whole observing network, not just the places that already have lifts.">
+<meta property="og:title" data-i18n-attrs="content:map.title" content="Where the snow falls — every Japanese station that measures it">
+<meta property="og:description" data-i18n-attrs="content:map.ogdesc" content="Annual snowfall across Japan's whole observing network, not just the places that already have lifts.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -106,63 +106,63 @@ table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
 <div class="wrap">
 
 <header>
-  <h1>Where the snow actually falls
+  <h1><span data-i18n="map.h1">Where the snow actually falls</span>
     <span class="ja">降雪の深さ年合計 — 全観測点</span></h1>
-  <p class="lede">Every station in Japan that measures snowfall, not just the places that
+  <p class="lede" data-i18n="map.lede">Every station in Japan that measures snowfall, not just the places that
   already have lifts. Pick the seasons you care about and it averages new snow over exactly
   those, so you can see which towns get buried and which merely have a reputation.</p>
 </header>
 
-<nav class="pages" aria-label="Pages">
-  <a href="index.html">Records</a>
-  <a href="plan.html">Trip planner</a>
-  <a href="trends.html">Trends</a>
-  <a href="map.html" aria-current="page">Snow map</a>
+<nav class="pages" data-i18n-attrs="aria-label:nav.label" aria-label="Pages">
+  <a href="index.html" data-i18n="nav.records">Records</a>
+  <a href="plan.html" data-i18n="nav.plan">Trip planner</a>
+  <a href="trends.html" data-i18n="nav.trends">Trends</a>
+  <a href="map.html" aria-current="page" data-i18n="nav.map">Snow map</a>
 </nav>
 
 <div id="gap" class="warn" hidden></div>
 
 <section>
-  <h2>The map</h2>
-  <p class="hint">Faint grey marks every weather station in the country — enough of them,
+  <h2 data-i18n="map.h2.map">The map</h2>
+  <p class="hint" data-i18n="map.hint">Faint grey marks every weather station in the country — enough of them,
   scattered widely enough, to trace the shape of Japan without a basemap. Coloured points
   are the ones that measure snow, shaded by how much they averaged over the seasons you
   choose. Click one. Pinch or ⌘/ctrl-scroll to zoom, drag to pan, double-click to go
   deeper — station names appear once you are in far enough to read them.</p>
   <div class="controls">
-    <label>Seasons
-      <select id="y0" aria-label="First season"></select>
+    <label><span data-i18n="map.seasons">Seasons</span>
+      <select id="y0" data-i18n-attrs="aria-label:map.firstSeason" aria-label="First season"></select>
     </label>
-    <label>through
-      <select id="y1" aria-label="Last season"></select>
+    <label><span data-i18n="map.through">through</span>
+      <select id="y1" data-i18n-attrs="aria-label:map.lastSeason" aria-label="Last season"></select>
     </label>
-    <label>Rank by
-      <select id="metric" aria-label="Which figure to map">
-        <option value="avg">average over those seasons</option>
-        <option value="best">the snowiest single season</option>
+    <label><span data-i18n="map.rankBy">Rank by</span>
+      <select id="metric" data-i18n-attrs="aria-label:map.metricAria" aria-label="Which figure to map">
+        <option value="avg" data-i18n="map.metric.avg">average over those seasons</option>
+        <option value="best" data-i18n="map.metric.best">the snowiest single season</option>
       </select>
     </label>
-    <label>Station at least
-      <select id="minelev" aria-label="Minimum station elevation">
-        <option value="0">any elevation</option>
+    <label><span data-i18n="map.minElev">Station at least</span>
+      <select id="minelev" data-i18n-attrs="aria-label:map.minElevAria" aria-label="Minimum station elevation">
+        <option value="0" data-i18n="map.anyElev">any elevation</option>
         <option value="200">200 m</option>
         <option value="400">400 m</option>
         <option value="600">600 m</option>
         <option value="800">800 m</option>
       </select>
     </label>
-    <label>Region
-      <select id="region" aria-label="Region"></select>
+    <label><span data-i18n="map.region">Region</span>
+      <select id="region" data-i18n-attrs="aria-label:map.region" aria-label="Region"></select>
     </label>
   </div>
   <div class="maprow">
     <div class="mapwrap">
       <div id="map"></div>
-      <div class="zoomtip" id="zoomtip" aria-hidden="true">pinch, or ⌘/ctrl + scroll, to zoom</div>
+      <div class="zoomtip" id="zoomtip" aria-hidden="true" data-i18n="map.zoomtip">pinch, or ⌘/ctrl + scroll, to zoom</div>
       <div class="zoomui">
-        <button id="zoomin" type="button" title="Zoom in" aria-label="Zoom in">+</button>
-        <button id="zoomout" type="button" title="Zoom out" aria-label="Zoom out">−</button>
-        <button id="zoomreset" type="button" title="Show the whole country">Reset</button>
+        <button id="zoomin" type="button" data-i18n-attrs="title:map.zoomIn,aria-label:map.zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+        <button id="zoomout" type="button" data-i18n-attrs="title:map.zoomOut,aria-label:map.zoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+        <button id="zoomreset" type="button" data-i18n-attrs="title:map.zoomResetTitle" data-i18n="map.zoomReset" title="Show the whole country">Reset</button>
       </div>
     </div>
     <aside class="detail" id="detail"></aside>
@@ -171,14 +171,14 @@ table.rank td i{display:inline-block;width:8px;height:8px;margin-right:9px;
 </section>
 
 <section>
-  <h2>The snowiest places</h2>
+  <h2 data-i18n="map.h2.rank">The snowiest places</h2>
   <p class="hint" id="rankhint"></p>
   <div class="tablewrap"><table class="rank" id="rank"><thead></thead><tbody></tbody></table></div>
 </section>
 
 <section>
-  <h2>Reading this as a site survey</h2>
-  <p class="hint">Worth being blunt about what this can and cannot tell you, if the question
+  <h2 data-i18n="map.h2.survey">Reading this as a site survey</h2>
+  <p class="hint" data-i18n="map.surveyhint">Worth being blunt about what this can and cannot tell you, if the question
   is where to build.</p>
   <p class="verdict" id="caveats"></p>
 </section>
@@ -192,6 +192,10 @@ const GROUPS = /*__GROUPS__*/null;
 const TOTAL = /*__TOTAL__*/0;
 const SEASON = /*__SEASON__*/null;
 </script>
+<script src="i18n.js"></script>
+<script src="locales/en.js"></script>
+<script src="locales/ja.js"></script>
+<script src="locales/zh-Hant.js"></script>
 <script>
 const el = id => document.getElementById(id);
 const STOPS = [0, 200, 400, 600, 800, 1200];
@@ -207,7 +211,7 @@ const shade = cm => {
 const RESORT_AT = {};
 for(const k in (DATA || {})){
   const id = DATA[k].station_id;
-  if(id) (RESORT_AT[id] = RESORT_AT[id] || []).push(DATA[k].name);
+  if(id) (RESORT_AT[id] = RESORT_AT[id] || []).push(k);
 }
 
 let survey = null, metric = "avg", minElev = 0, region = "", picked = null;
@@ -324,12 +328,10 @@ function drawMap(){
     g += `<circle class="stn${picked === s.id ? " sel" : ""}" data-id="${s.id}" `
       + `cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" data-r="${r.toFixed(2)}" `
       + `r="${r.toFixed(1)}" fill="${shade(val(s))}">`
-      + `<title>${s.name} — ${Math.round(val(s))}cm/yr</title></circle>`;
+      + `<title>${T("map.tip", {name: s.name, n: Math.round(val(s))})}</title></circle>`;
   });
   el("map").innerHTML =
-    `<svg viewBox="0 0 ${p.W} ${p.H}" tabindex="0" role="img" aria-label="Annual `
-    + `snowfall by weather station across Japan. Zoomable; the table below lists the `
-    + `same stations.">${g}<g id="mlabels"></g></svg>`;
+    `<svg viewBox="0 0 ${p.W} ${p.H}" tabindex="0" role="img" aria-label="${T("map.aria")}">${g}<g id="mlabels"></g></svg>`;
   mapSvg = el("map").querySelector("svg");
   /* The map takes the width it is given and derives its height from that. The
      pair of vh caps only stops it growing taller than the window, and they are
@@ -496,58 +498,53 @@ function drawScale(){
     L.insertAdjacentHTML("beforeend",
       `<i style="background:var(${RAMP[i+1]})"></i><span>${s ? s : "1200+"}</span>`);
   });
-  L.insertAdjacentHTML("beforeend", "<span>cm of new snow per year</span>");
+  L.insertAdjacentHTML("beforeend", `<span>${T("map.scale")}</span>`);
 }
 
 function drawDetail(){
   const s = survey.stations.find(x => x.id === picked);
   if(!s){
-    el("detail").innerHTML = `<p class="none">Click any coloured point to see that
-      station's record — how much it averages, how high it sits, and how long it has
-      been measuring.</p>`;
+    el("detail").innerHTML = `<p class="none">${T("map.detail.none")}</p>`;
     return;
   }
   const at = RESORT_AT[s.id], t = stat(s);
   el("detail").innerHTML =
     `<h3>${s.name}</h3><p class="ja">${s.kana} · ${s.region}</p>`
     + `<p class="big">${t.n ? Math.round(val(s)) : "—"}<small>cm${
-        metric === "best" ? ", snowiest season" : " / year"}</small></p>`
+        T(metric === "best" ? "map.detail.unitBest" : "map.detail.unitAvg")}</small></p>`
     + `<dl>`
-    + `<dt>Window</dt><dd>${seasonLabel(y0)}–${seasonLabel(y1)}</dd>`
-    + `<dt>Seasons with data</dt><dd>${t.n} of ${span()}</dd>`
-    + `<dt>Average</dt><dd>${t.n ? Math.round(t.avg) + "cm" : "—"}</dd>`
-    + `<dt>Snowiest</dt><dd>${t.bestY
+    + `<dt>${T("map.detail.window")}</dt><dd>${seasonLabel(y0)}–${seasonLabel(y1)}</dd>`
+    + `<dt>${T("map.detail.have")}</dt><dd>${T("map.detail.ofSpan", {n: t.n, span: span()})}</dd>`
+    + `<dt>${T("map.detail.avg")}</dt><dd>${t.n ? Math.round(t.avg) + "cm" : "—"}</dd>`
+    + `<dt>${T("map.detail.best")}</dt><dd>${t.bestY
         ? Math.round(t.best) + "cm " + seasonLabel(t.bestY) : "—"}</dd>`
-    + `<dt>Whole record</dt><dd>${Math.round(s.lifeMean)}cm</dd>`
-    + `<dt>Station height</dt><dd>${s.elev != null ? Math.round(s.elev) + "m" : "—"}</dd>`
-    + `<dt>Measuring</dt><dd>${seasonLabel(s.from)}–${seasonLabel(s.to)}</dd>`
+    + `<dt>${T("map.detail.life")}</dt><dd>${Math.round(s.lifeMean)}cm</dd>`
+    + `<dt>${T("map.detail.height")}</dt><dd>${s.elev != null ? Math.round(s.elev) + "m" : "—"}</dd>`
+    + `<dt>${T("map.detail.measuring")}</dt><dd>${seasonLabel(s.from)}–${seasonLabel(s.to)}</dd>`
     + `</dl>`
-    + (s.to < liveY ? `<p class="stale">This station stopped reporting after
-        <b>${seasonLabel(s.to)}</b>. Whatever it averaged, it is not telling you about
-        snow now.</p>` : "")
-    + (at ? `<p class="isresort">Already on this site as <b>${at.join(" and ")}</b> —
-        this station is what those figures come from.</p>` : "");
+    + (s.to < liveY ? `<p class="stale">${T("map.detail.stale", {season: seasonLabel(s.to)})}</p>` : "")
+    + (at ? `<p class="isresort">${T("map.detail.isResort", {names: I18N.list(at.map(nameOf))})}</p>` : "");
 }
 
 function drawRank(){
   const all = visible();
   const rows = [...all].sort((a,b) => val(b) - val(a)).slice(0, 40);
-  el("rank").tHead.innerHTML = "<tr><th>#</th><th>Station</th><th>Region</th>"
-    + `<th>Height</th><th>${metric === "best" ? "Snowiest season" : "Snow / year"}</th>`
-    + "<th>Seasons</th><th>Last season</th></tr>";
+  el("rank").tHead.innerHTML = `<tr><th>#</th><th>${T("map.th.station")}</th><th>${T("map.region")}</th>`
+    + `<th>${T("map.th.height")}</th><th>${T(metric === "best" ? "map.th.best" : "map.th.perYear")}</th>`
+    + `<th>${T("map.th.seasons")}</th><th>${T("map.th.last")}</th></tr>`;
   el("rank").tBodies[0].innerHTML = rows.map((s,i) => {
     const t = stat(s);
     return `<tr class="${picked === s.id ? "sel" : ""}" data-id="${s.id}">`
     + `<td>${i+1}</td>`
     + `<td class="who"><i style="background:${shade(val(s))}"></i>${s.name}`
-    + (RESORT_AT[s.id] ? `<br><span class="sub">${RESORT_AT[s.id].join(", ")}</span>` : "")
+    + (RESORT_AT[s.id] ? `<br><span class="sub">${RESORT_AT[s.id].map(nameOf).join(", ")}</span>` : "")
     + `</td>`
     + `<td>${s.region}</td>`
     + `<td>${s.elev != null ? Math.round(s.elev) + "<span class='sub'>m</span>" : "—"}</td>`
     + `<td>${Math.round(val(s))}<span class='sub'>cm</span>`
     + (metric === "best" ? `<span class='sub'> ${seasonLabel(t.bestY)}</span>` : "")
     + `</td>`
-    + `<td>${t.n}<span class='sub'> of ${span()}</span></td>`
+    + `<td>${t.n}<span class='sub'> ${T("map.th.ofSpan", {span: span()})}</span></td>`
     + `<td class="${s.to < liveY ? "old" : ""}">${seasonLabel(s.to)}</td></tr>`;
   }).join("");
   el("rank").tBodies[0].querySelectorAll("tr").forEach(tr => {
@@ -557,18 +554,15 @@ function drawRank(){
   // filters -- worth naming, because a closed station silently vanishing looks
   // like a bug otherwise.
   const thin = matching().length - all.length;
-  el("rankhint").innerHTML =
-    (rows.length < all.length ? `The ${rows.length} snowiest of ${all.length} stations`
-                              : `All ${all.length} matching stations`)
-    + `, by ${metric === "best" ? "the snowiest single season" : "average snowfall"}`
-    + ` over ${seasonLabel(y0)}–${seasonLabel(y1)}`
-    + (minElev ? `, at ${minElev}m or higher` : "")
-    + (region ? `, in ${region}` : "") + `. Click a row to find it on the map.`
-    + (thin ? ` ${thin} other station${thin > 1 ? "s" : ""} ${thin > 1 ? "are" : "is"}
-        left out for want of data — ${minSeasons() > 1
-          ? `fewer than ${minSeasons()} of those seasons on record`
-          : `nothing on record for that season`} — mostly ones that stopped
-        reporting years ago.` : "");
+  el("rankhint").innerHTML = T("map.rank", {
+    head: rows.length < all.length ? T("map.rank.some", {n: rows.length, total: all.length})
+                                   : T("map.rank.all", {total: all.length}),
+    by: T(metric === "best" ? "map.rank.byBest" : "map.rank.byAvg"),
+    from: seasonLabel(y0), to: seasonLabel(y1),
+    elev: minElev ? T("map.rank.elev", {m: minElev}) : "",
+    region: region ? T("map.rank.region", {region}) : "",
+    thin: thin ? T("map.rank.thin", {n: thin,
+      why: minSeasons() > 1 ? T("map.rank.fewer", {n: minSeasons()}) : T("map.rank.none")}) : ""});
 }
 
 function drawCaveats(){
@@ -576,25 +570,21 @@ function drawCaveats(){
   const top = [...s].sort((a,b) => stat(b).avg - stat(a).avg).slice(0, 20);
   const topFree = top.filter(x => !RESORT_AT[x.id]).length;
   if(!top.length){ el("caveats").innerHTML = ""; return; }
-  el("caveats").innerHTML =
-    `A station is one thermometer in one municipality, almost always in the valley
-     where people live rather than on the hill above it — which is exactly why the
-     resorts on this site average a kilometre below their own summits. A town reading
-     ${Math.round(stat(top[0]).avg)}cm a year is telling you the mountain behind it gets
-     considerably more, not that you should build at the station.<br><br>
-     What this map answers is where snow reliably falls. What it says nothing about is
-     vertical relief, aspect, avalanche terrain, road access, land you could actually
-     buy, or whether the slope above that town is a workable fall line. Of the twenty
-     snowiest stations on this map, ${topFree} back no resort here — which mostly means
-     the terrain, the access or the economics did not work, not that ${topFree}
-     opportunities are sitting unclaimed.<br><br>
-     Japan's ski industry peaked in the early nineties and has been closing lifts since.
-     Snow was never the constraint.`;
+  el("caveats").innerHTML = T("map.caveats", {avg: Math.round(stat(top[0]).avg), free: topFree});
 }
 
 function redraw(){
   computeStats();
   drawMap(); drawRank(); drawDetail(); drawCaveats();
+}
+
+/* The words that are not rebuilt by redraw(), and not marked up in the page. */
+function paintStatic(){
+  el("foot").innerHTML = T("map.foot");
+  if(survey){
+    drawScale();
+    el("region").options[0].textContent = T("map.everywhere");
+  }
 }
 
 function seasonOptions(sel, chosen){
@@ -637,7 +627,7 @@ function boot(){
     seasonOptions(el("y1"), y1);
     const regions = [...new Set(survey.stations.filter(inBox).map(s => s.region))].sort();
     const rs = el("region");
-    rs.innerHTML = '<option value="">everywhere</option>'
+    rs.innerHTML = `<option value="">${T("map.everywhere")}</option>`
       + regions.map(r => `<option value="${r}">${r}</option>`).join("");
     el("metric").onchange = () => { metric = el("metric").value; redraw(); };
     el("minelev").onchange = () => { minElev = Number(el("minelev").value); redraw(); };
@@ -655,6 +645,7 @@ function boot(){
       redraw();
     };
     drawScale(); redraw();
+    I18N.onChange(() => { paintStatic(); redraw(); });
     el("zoomin").onclick  = () => zoomCentre(1.6);
     el("zoomout").onclick = () => zoomCentre(1 / 1.6);
     el("zoomreset").onclick = () => {
@@ -663,19 +654,9 @@ function boot(){
     };
   }).catch(() => {
     el("gap").hidden = false;
-    el("gap").innerHTML = "No survey data yet. Run <code>python3 jma_snowfall.py survey</code>, "
-      + "then <code>python3 site.py build</code>.";
+    el("gap").innerHTML = T("map.nosurvey");
   });
-  el("foot").innerHTML =
-    "Source: Japan Meteorological Agency, 過去の気象データ検索 "
-    + "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>), element "
-    + "降雪の深さ合計 by 寒候年 — the cold-season year running "
-    + "1 August to 31 July, which is how JMA files snow — so the 2025/26 season is "
-    + "filed as 2026. Stations with fewer than ten years of record are left out "
-    + "entirely, and a station only ranks in a window it actually measured through: "
-    + "plenty closed decades ago. Positions come from JMA's own station list; the "
-    + "map is a plain equirectangular projection with no basemap, so treat it as a "
-    + "scatter of real coordinates rather than a survey chart.";
+  paintStatic();
 }
 boot();
 </script>

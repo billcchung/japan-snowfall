@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trip planner — snowfall by date range</title>
-<meta name="description" content="Compare ski resorts over any range of dates using historical daily snowfall from official weather stations. See what a window typically delivers, how much it varies, and whether a different fortnight would be better.">
+<title data-i18n="plan.title">Trip planner — snowfall by date range</title>
+<meta name="description" data-i18n-attrs="content:plan.desc" content="Compare ski resorts over any range of dates using historical daily snowfall from official weather stations. See what a window typically delivers, how much it varies, and whether a different fortnight would be better.">
 <meta name="color-scheme" content="dark">
-<meta property="og:title" content="Trip planner — snowfall by date range">
-<meta property="og:description" content="Pick resorts and dates. See what those days historically delivered, and whether you should go somewhere else.">
+<meta property="og:title" data-i18n-attrs="content:plan.title" content="Trip planner — snowfall by date range">
+<meta property="og:description" data-i18n-attrs="content:plan.ogdesc" content="Pick resorts and dates. See what those days historically delivered, and whether you should go somewhere else.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -134,49 +134,49 @@ table.cmp tr.off td{opacity:.4}
 <div class="wrap">
 
 <header>
-  <h1>When should you go
+  <h1><span data-i18n="plan.h1">When should you go</span>
     <span class="ja">降雪の深さ日合計 — 期間別</span></h1>
-  <p class="lede">Pick the resorts you're weighing up and the dates you can travel. Every
+  <p class="lede" data-i18n="plan.lede">Pick the resorts you're weighing up and the dates you can travel. Every
   figure is what those days actually delivered at the nearest official weather station,
   season after season — history, not a forecast.</p>
 </header>
 
-<nav class="pages" aria-label="Pages">
-  <a href="index.html">Records</a>
-  <a href="plan.html" aria-current="page">Trip planner</a>
-  <a href="trends.html">Trends</a>
-  <a href="map.html">Snow map</a>
+<nav class="pages" data-i18n-attrs="aria-label:nav.label" aria-label="Pages">
+  <a href="index.html" data-i18n="nav.records">Records</a>
+  <a href="plan.html" aria-current="page" data-i18n="nav.plan">Trip planner</a>
+  <a href="trends.html" data-i18n="nav.trends">Trends</a>
+  <a href="map.html" data-i18n="nav.map">Snow map</a>
 </nav>
 
 <div id="gap" class="warn" hidden></div>
 
 <section>
-  <h2>Resorts</h2>
-  <p class="hint">Pick as many as you like. Resorts sharing one weather station — Asahidake
+  <h2 data-i18n="c.resorts">Resorts</h2>
+  <p class="hint" data-i18n="plan.pickhint">Pick as many as you like. Resorts sharing one weather station — Asahidake
   and Kamui both read from 旭川 — will show identical numbers.</p>
-  <nav class="picker" id="picker" aria-label="Resorts"></nav>
+  <nav class="picker" id="picker" data-i18n-attrs="aria-label:c.resorts" aria-label="Resorts"></nav>
   <div class="pickbar">
-    <button type="button" id="clear">Clear all</button>
-    <button type="button" id="area-all">Select open areas</button>
+    <button type="button" id="clear" data-i18n="c.clearAll">Clear all</button>
+    <button type="button" id="area-all" data-i18n="c.selectOpen">Select open areas</button>
     <span id="count"></span>
   </div>
 </section>
 
 <section>
-  <h2>Dates</h2>
+  <h2 data-i18n="plan.h2.dates">Dates</h2>
   <div class="planner">
     <div class="dates">
-      <label>From
-        <select id="m1" aria-label="Start month"></select>
-        <select id="d1" aria-label="Start day"></select>
+      <label><span data-i18n="c.from">From</span>
+        <select id="m1" data-i18n-attrs="aria-label:c.startMonth" aria-label="Start month"></select>
+        <select id="d1" data-i18n-attrs="aria-label:c.startDay" aria-label="Start day"></select>
       </label>
-      <label>To
-        <select id="m2" aria-label="End month"></select>
-        <select id="d2" aria-label="End day"></select>
+      <label><span data-i18n="c.to">To</span>
+        <select id="m2" data-i18n-attrs="aria-label:c.endMonth" aria-label="End month"></select>
+        <select id="d2" data-i18n-attrs="aria-label:c.endDay" aria-label="End day"></select>
       </label>
       <span class="len" id="len"></span>
-      <span class="since">Average over
-        <select id="since" aria-label="Seasons to average"></select>
+      <span class="since"><span data-i18n="plan.averageOver">Average over</span>
+        <select id="since" data-i18n-attrs="aria-label:plan.seasonsAria" aria-label="Seasons to average"></select>
       </span>
     </div>
     <p class="verdict" id="verdict"></p>
@@ -184,35 +184,35 @@ table.cmp tr.off td{opacity:.4}
 </section>
 
 <section>
-  <h2>When to go</h2>
+  <h2 data-i18n="plan.h2.when">When to go</h2>
   <p class="hint" id="scanhint"></p>
   <div class="chart" id="scan"></div>
   <div class="keybar">
     <div class="key" id="key"></div>
-    <button type="button" class="toggle" id="showall">Show all</button>
-    <button type="button" class="toggle" id="hideall">Hide all</button>
-    <button type="button" class="toggle" id="bands" aria-pressed="true">Spread</button>
+    <button type="button" class="toggle" id="showall" data-i18n="c.showAll">Show all</button>
+    <button type="button" class="toggle" id="hideall" data-i18n="c.hideAll">Hide all</button>
+    <button type="button" class="toggle" id="bands" aria-pressed="true" data-i18n="plan.spread">Spread</button>
   </div>
 </section>
 
 <section>
-  <h2>How they compare</h2>
+  <h2 data-i18n="plan.h2.compare">How they compare</h2>
   <p class="hint" id="cmphint"></p>
   <div class="tablewrap"><table class="cmp" id="cmp"><thead></thead><tbody></tbody></table></div>
 </section>
 
 <section>
-  <h2>Day by day</h2>
+  <h2 data-i18n="plan.h2.day">Day by day</h2>
   <p class="hint" id="dayhint"></p>
   <div class="chart" id="day"></div>
   <div class="keybar">
-    <button type="button" class="toggle" id="dayunit" aria-pressed="false">Show base depth</button>
+    <button type="button" class="toggle" id="dayunit" aria-pressed="false"></button>
   </div>
 </section>
 
 <section>
-  <h2>Where these numbers come from</h2>
-  <p class="hint">Every figure on this page is an observation from one of these
+  <h2 data-i18n="plan.h2.src">Where these numbers come from</h2>
+  <p class="hint" data-i18n="plan.srchint">Every figure on this page is an observation from one of these
   stations — never a resort's own marketing number. Stations sit in the valley
   town rather than on the mountain, so the gap below the summit is the main
   reason on-hill totals run higher.</p>
@@ -228,6 +228,10 @@ const GROUPS = /*__GROUPS__*/null;
 const TOTAL = /*__TOTAL__*/0;
 const SEASON = /*__SEASON__*/null;
 </script>
+<script src="i18n.js"></script>
+<script src="locales/en.js"></script>
+<script src="locales/ja.js"></script>
+<script src="locales/zh-Hant.js"></script>
 <script src="site.js"></script>
 <script>
 let showBands = true;
@@ -308,7 +312,7 @@ function svgScan(series, a, L, scaleFrom){
     const d1 = fromOrd(st), d2 = fromOrd(Math.min(NDAYS-1, st+L-1));
     return {x:X(st), label:dateLabel(d1.m,d1.d)+" – "+dateLabel(d2.m,d2.d), rows};
   }};
-  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall by trip start date, with the range each resort delivers">${body}</svg>`, model};
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${T("plan.scan.aria")}">${body}</svg>`, model};
 }
 
 function svgDaily(series, a, b){
@@ -322,7 +326,7 @@ function svgDaily(series, a, b){
   const Y = v => P.t + ih - (Math.min(v,maxv)/maxv)*ih;
   let g = axes(W,H,P,maxv,X);
   g += `<text class="axis" x="${P.l-6}" y="${P.t-4}" text-anchor="end">`
-     + (dayDepth ? "cm lying" : "cm/day") + `</text>`;
+     + (dayDepth ? T("plan.axis.lying") : T("plan.axis.perday")) + `</text>`;
   // The chosen trip, on the same axis.
   const wx1 = X(a), wx2 = X(Math.min(NDAYS-1, b));
   g += `<rect class="win" x="${wx1.toFixed(1)}" y="${P.t}" `
@@ -351,32 +355,33 @@ function svgDaily(series, a, b){
       rows.push({name:ser.name, colour:ser.colour, y:Y(p.v), sort:p.v,
                  value: (Math.round(p.v*10)/10) + (dayDepth ? "cm" : "cm/day"),
                  extra: r && r.depth != null && !dayDepth
-                          ? Math.round(r.depth) + "cm base" : ""});
+                          ? T("plan.tip.base", {n: Math.round(r.depth)}) : ""});
     });
     if(!rows.length) return null;
     rows.sort((x,y) => y.sort - x.sort);
     const dt = fromOrd(d);
     return {x:X(d), label:dateLabel(dt.m, dt.d), rows};
   }};
-  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average snowfall for each day of the season">${g}</svg>`, model};
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${T("plan.day.aria")}">${g}</svg>`, model};
 }
 
 /* ---------- main ---------- */
 /* Provenance: which station each figure actually came from. */
 function renderSource(series){
-  el("src").tHead.innerHTML = "<tr><th>Resort</th><th>Station</th><th>Station height</th>"
-    + "<th>Below summit</th><th>Record</th><th>Source</th></tr>";
+  el("src").tHead.innerHTML = `<tr><th>${T("plan.th.resort")}</th><th>${T("plan.th.station")}</th>`
+    + `<th>${T("plan.th.height")}</th><th>${T("plan.th.below")}</th>`
+    + `<th>${T("plan.th.record")}</th><th>${T("plan.th.source")}</th></tr>`;
   el("src").tBodies[0].innerHTML = series.map(s => {
     const d = DATA[s.k];
     const seasons = d.seasons || [];
     const span = seasons.length ? seasons[0].s + " – " + seasons[seasons.length-1].s : "—";
     const gap = (d.top && d.station_m != null) ? Math.round(d.top - d.station_m) : null;
     return `<tr><td class="who"><i style="background:${s.colour}"></i>${s.name}`
-      + `<br><span class="sub">${d.area}</span></td>`
+      + `<br><span class="sub">${areaLabel(d.area)}</span></td>`
       + `<td>${d.station || "—"}<br><span class="sub">${d.region || ""}</span></td>`
       + `<td>${d.station_m != null ? Math.round(d.station_m) + "<span class=\"sub\">m</span>" : "—"}</td>`
       + `<td>${gap != null ? gap.toLocaleString() + "<span class=\"sub\">m</span>" : "—"}</td>`
-      + `<td>${span}<br><span class="sub">${seasons.length} seasons</span></td>`
+      + `<td>${span}<br><span class="sub">${T("plan.seasons", {n: seasons.length})}</span></td>`
       + `<td>${(d.source || "").toUpperCase()}<br><span class="sub">${d.station_id || ""}</span></td>`
       + `</tr>`;
   }).join("");
@@ -395,14 +400,14 @@ async function renderPage(){
   paintPicker();
   [...hidden].forEach(k => { if(!picked.includes(k)) hidden.delete(k); });
   const a = ord(sel.m1, sel.d1), b = ord(sel.m2, sel.d2), L = b - a + 1;
-  el("len").innerHTML = "<b>" + L + "</b> day" + (L===1 ? "" : "s");
-  if(!picked.length) return blank("Pick at least one resort above.");
+  el("len").innerHTML = T("plan.len", {n: L});
+  if(!picked.length) return blank(T("plan.pickOne"));
 
   const token = picked.join("|") + a + b + since;
   renderPage.token = token;
   const series = await seriesFor(a, b, L);
   if(renderPage.token !== token) return;   // selection changed while loading
-  if(!series.length) return blank("No daily record for the selected resorts.");
+  if(!series.length) return blank(T("plan.noDaily"));
 
   series.forEach(s => {
     const pk = s.curve.length ? s.curve.reduce((x,y)=> y.mean>x.mean?y:x) : null;
@@ -414,53 +419,50 @@ async function renderPage(){
   const vis = series.filter(s => !hidden.has(s.k));
 
   // ---- table ----
-  el("cmp").tHead.innerHTML = "<tr><th>Resort</th><th>Typical</th><th>Usual range</th>"
-    + "<th>Swing</th><th>Powder days</th><th>Base</th><th>Best window instead</th></tr>";
+  el("cmp").tHead.innerHTML = `<tr><th>${T("plan.th.resort")}</th><th>${T("plan.th.typical")}</th>`
+    + `<th>${T("plan.th.range")}</th><th>${T("plan.th.swing")}</th>`
+    + `<th>${T("plan.th.powder")}</th><th>${T("plan.th.base")}</th><th>${T("plan.th.best")}</th></tr>`;
   el("cmp").tBodies[0].innerHTML = ranked.map((s,i) => {
     const p1 = s.peak ? fromOrd(s.peak.start) : null;
     const p2 = s.peak ? fromOrd(s.peak.start + L - 1) : null;
     const better = s.gap > 5 && p1
       ? `${dateLabel(p1.m,p1.d)} – ${dateLabel(p2.m,p2.d)}<br><span class="sub">+${Math.round(s.gap)}cm</span>`
-      : `<span class="sub">your dates are its peak</span>`;
+      : `<span class="sub">${T("plan.atPeak")}</span>`;
     const off = hidden.has(s.k) ? " off" : "";
     return `<tr class="${i===0?"top":""}${off}">`
       + `<td class="who"><i style="background:${s.colour}"></i>${s.name}`
       + `<br><span class="sub">${s.area}</span></td>`
       + `<td class="big">${Math.round(s.med)}<span class="sub">cm</span>`
-      + `<br><span class="sub">mean ${Math.round(s.avg)}</span></td>`
+      + `<br><span class="sub">${T("plan.mean", {n: Math.round(s.avg)})}</span></td>`
       + `<td>${Math.round(s.p10)}–${Math.round(s.p90)}<span class="sub">cm</span></td>`
       + `<td>±${Math.round(s.sd)}<span class="sub">cm</span>`
-      + `<br><span class="sub">${Math.round(s.cv)}% of typical</span></td>`
+      + `<br><span class="sub">${T("plan.ofTypical", {n: Math.round(s.cv)})}</span></td>`
       + `<td>${Math.round(s.powder*10)/10}</td>`
       + `<td>${s.base!=null ? Math.round(s.base)+'<span class="sub">cm</span>' : "—"}</td>`
       + `<td>${better}</td></tr>`;
   }).join("");
-  el("cmphint").innerHTML = `Ranked by median snowfall over `
-    + `<b>${dateLabel(sel.m1,sel.d1)} – ${dateLabel(sel.m2,sel.d2)}</b>, across `
-    + (since ? "the last " + since + " seasons" : "every season on record")
-    + `. "Usual range" is the 10th to 90th percentile — a wide range means these dates are a `
-    + `gamble at that resort. "Base" is snow lying on the ground at the station.`;
+  el("cmphint").innerHTML = T("plan.cmphint", {
+    from: dateLabel(sel.m1,sel.d1), to: dateLabel(sel.m2,sel.d2), period: periodText()});
 
   // ---- verdict ----
   const top = ranked[0], worst = ranked[ranked.length-1];
   const allBelowPeak = ranked.every(s => s.gap > 5);
-  let v = `Over ${top.rows.length} seasons, <b>${top.name}</b> is the strongest of your `
-    + `${ranked.length} pick${ranked.length===1?"":"s"} for these dates at a median of `
-    + `<b>${Math.round(top.med)}cm</b>`;
-  if(ranked.length > 1) v += `, against ${Math.round(worst.med)}cm for ${worst.name}`;
-  v += ". ";
+  let v = T("plan.verdict.lead", {seasons: top.rows.length, n: ranked.length,
+    name: top.name, med: Math.round(top.med)});
+  if(ranked.length > 1)
+    v += T("plan.verdict.vs", {med: Math.round(worst.med), name: worst.name});
+  v += T("plan.verdict.end");
   if(allBelowPeak){
     const p1 = fromOrd(top.peak.start), p2 = fromOrd(top.peak.start + L - 1);
     // Check which way each peak actually sits; they are not always later.
-    const dir = ranked.every(s => s.peak.start > a) ? "later in the season than"
-              : ranked.every(s => s.peak.start < a) ? "earlier in the season than"
-              : "somewhere other than";
-    v += `Every resort you picked peaks ${dir} your window — `
-      + `<b>${dateLabel(p1.m,p1.d)} – ${dateLabel(p2.m,p2.d)}</b> would add about `
-      + `${Math.round(top.gap)}cm at ${top.name}. Worth shifting the trip if you can.`;
+    const dir = ranked.every(s => s.peak.start > a) ? "later"
+              : ranked.every(s => s.peak.start < a) ? "earlier"
+              : "other";
+    v += T("plan.verdict.peak." + dir, {
+      range: `<b>${dateLabel(p1.m,p1.d)} – ${dateLabel(p2.m,p2.d)}</b>`,
+      gap: Math.round(top.gap), name: top.name});
   }else{
-    v += `Your dates are at or near the seasonal peak for ${
-      ranked.filter(s=>s.gap<=5).length} of them.`;
+    v += T("plan.verdict.near", {n: ranked.filter(s=>s.gap<=5).length});
   }
   el("verdict").innerHTML = v;
 
@@ -487,17 +489,11 @@ async function renderPage(){
   const swingiest = [...vis].sort((x,y) => y.cv - x.cv)[0];
   const allOff = !vis.length;
   el("scanhint").innerHTML = allOff
-    ? `Every resort is hidden — the axes stay so you can see the scale. Use Show all, `
-      + `or click a name in the key to bring one back.`
-    : `The solid line is average snowfall for a ${L}-day trip starting `
-    + `on each date; the dot is that resort's best window and the white line is your start `
-    + `date. The shaded band around each line runs from the 10th to the 90th percentile — `
-    + `a fat band means that window is a lottery, a tight one means it turns up reliably. `
-    + `Your chosen dates are the shaded block. Hover the chart for exact figures.`
+    ? T("plan.scanhint.off")
+    : T("plan.scanhint", {L})
     + (vis.length > 1
-        ? ` Over your dates <b>${steadiest.name}</b> is the most dependable, swinging `
-          + `${Math.round(steadiest.cv)}% of a typical season, against `
-          + `${Math.round(swingiest.cv)}% for <b>${swingiest.name}</b>.`
+        ? T("c.join") + T("plan.scanhint.steady", {steady: steadiest.name, cv: Math.round(steadiest.cv),
+            cv2: Math.round(swingiest.cv), swing: swingiest.name})
         : "");
 
 }
@@ -507,28 +503,28 @@ async function renderPage(){
 function renderDay(vis, a, b){
   if(!vis.length){
     el("day").innerHTML = "";
-    el("dayhint").innerHTML = `<span class="nodaily">Every resort is hidden.</span>`;
+    el("dayhint").innerHTML = `<span class="nodaily">${T("plan.day.off")}</span>`;
     return;
   }
   const d = svgDaily(vis, a, b);
   el("day").innerHTML = d.svg;
   attachHover(el("day"), d.model);
-  el("dayhint").innerHTML = dayDepth
-    ? `Average depth of snow lying at the station on each day of the season, over `
-      + `${since ? "the last " + since + " seasons" : "every season on record"}. This is `
-      + `what builds and then melts, so it answers "will there be cover" rather than `
-      + `"will it be snowing". Smoothed over a week; your dates are the shaded block.`
-    : `Average new snow on each day of the season, over `
-      + `${since ? "the last " + since + " seasons" : "every season on record"} — the shape `
-      + `of the winter rather than a total, so you can see when it reliably starts and `
-      + `stops. A single calendar day across twenty seasons is noisy, so the line is `
-      + `smoothed over nine days; hover for the figure and that day's typical base.`;
+  el("dayhint").innerHTML = T(dayDepth ? "plan.day.depth" : "plan.day.snow", {period: periodText()});
 }
+
+/* "the last 20 seasons" or "every season on record", as the sentence needs it. */
+const periodText = () => since ? T("ctl.lastN", {n: since}) : T("ctl.allSeasons");
+
+function paintStatic(){
+  el("dayunit").textContent = T(dayDepth ? "plan.dayunit.snow" : "plan.dayunit.depth");
+  el("foot").innerHTML = T("plan.foot");
+}
+I18N.onChange(paintStatic);
 
 el("dayunit").onclick = () => {
   dayDepth = !dayDepth;
   el("dayunit").setAttribute("aria-pressed", dayDepth);
-  el("dayunit").textContent = dayDepth ? "Show new snow" : "Show base depth";
+  paintStatic();
   renderPage();
 };
 
@@ -540,13 +536,7 @@ el("bands").onclick = () => {
   renderPage();
 };
 
-el("foot").innerHTML =
-  "Source: Japan Meteorological Agency, \u904e\u53bb\u306e\u6c17\u8c61\u30c7\u30fc\u30bf\u691c\u7d22 "
-  + "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>). New snow is "
-  + "\u964d\u96ea\u306e\u6df1\u3055\u65e5\u5408\u8a08, base depth is \u6700\u6df1\u7a4d\u96ea, both measured daily at the station nearest "
-  + "each resort. Stations sit in the valley town rather than on the mountain, so treat "
-  + "these as a reliable guide to which dates are better and a conservative floor on what "
-  + "falls up the hill. Nothing here is a forecast.";
+paintStatic();
 bootShell(3);
 </script>
 </body>

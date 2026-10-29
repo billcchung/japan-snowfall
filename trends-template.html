@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trends — how each resort's snowfall is changing</title>
-<meta name="description" content="How snowfall in a chosen part of the season has changed at each Japanese ski resort, season by season, from official weather-station records.">
+<title data-i18n="trends.title">Trends — how each resort's snowfall is changing</title>
+<meta name="description" data-i18n-attrs="content:trends.desc" content="How snowfall in a chosen part of the season has changed at each Japanese ski resort, season by season, from official weather-station records.">
 <meta name="color-scheme" content="dark">
-<meta property="og:title" content="Trends — how each resort's snowfall is changing">
-<meta property="og:description" content="Season-by-season snowfall for any part of the winter, per resort, with the long-run trend.">
+<meta property="og:title" data-i18n-attrs="content:trends.title" content="Trends — how each resort's snowfall is changing">
+<meta property="og:description" data-i18n-attrs="content:trends.ogdesc" content="Season-by-season snowfall for any part of the winter, per resort, with the long-run trend.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -134,52 +134,52 @@ table.cmp tr.off td{opacity:.4}
 <div class="wrap">
 
 <header>
-  <h1>How the snow is changing
+  <h1><span data-i18n="trends.h1">How the snow is changing</span>
     <span class="ja">降雪の深さ日合計 — 年次推移</span></h1>
-  <p class="lede">Season by season, for whichever part of the winter you care about. The
+  <p class="lede" data-i18n="trends.lede">Season by season, for whichever part of the winter you care about. The
   question here is whether a resort is getting more or less snow over the decades — not
   when to book, which the trip planner answers.</p>
 </header>
 
-<nav class="pages" aria-label="Pages">
-  <a href="index.html">Records</a>
-  <a href="plan.html">Trip planner</a>
-  <a href="trends.html" aria-current="page">Trends</a>
-  <a href="map.html">Snow map</a>
+<nav class="pages" data-i18n-attrs="aria-label:nav.label" aria-label="Pages">
+  <a href="index.html" data-i18n="nav.records">Records</a>
+  <a href="plan.html" data-i18n="nav.plan">Trip planner</a>
+  <a href="trends.html" aria-current="page" data-i18n="nav.trends">Trends</a>
+  <a href="map.html" data-i18n="nav.map">Snow map</a>
 </nav>
 
 <div id="gap" class="warn" hidden></div>
 
 <section>
-  <h2>Resorts</h2>
-  <p class="hint">Pick as many as you like. Resorts sharing one weather station — Asahidake
+  <h2 data-i18n="c.resorts">Resorts</h2>
+  <p class="hint" data-i18n="trends.pickhint">Pick as many as you like. Resorts sharing one weather station — Asahidake
   and Kamui both read from 旭川 — will trace the same line.</p>
-  <nav class="picker" id="picker" aria-label="Resorts"></nav>
+  <nav class="picker" id="picker" data-i18n-attrs="aria-label:c.resorts" aria-label="Resorts"></nav>
   <div class="pickbar">
-    <button type="button" id="clear">Clear all</button>
-    <button type="button" id="area-all">Select open areas</button>
+    <button type="button" id="clear" data-i18n="c.clearAll">Clear all</button>
+    <button type="button" id="area-all" data-i18n="c.selectOpen">Select open areas</button>
     <span id="count"></span>
   </div>
 </section>
 
 <section>
-  <h2>Part of the season</h2>
+  <h2 data-i18n="trends.h2.part">Part of the season</h2>
   <div class="planner">
     <div class="dates">
-      <label>From
-        <select id="m1" aria-label="Start month"></select>
-        <select id="d1" aria-label="Start day"></select>
+      <label><span data-i18n="c.from">From</span>
+        <select id="m1" data-i18n-attrs="aria-label:c.startMonth" aria-label="Start month"></select>
+        <select id="d1" data-i18n-attrs="aria-label:c.startDay" aria-label="Start day"></select>
       </label>
-      <label>To
-        <select id="m2" aria-label="End month"></select>
-        <select id="d2" aria-label="End day"></select>
+      <label><span data-i18n="c.to">To</span>
+        <select id="m2" data-i18n-attrs="aria-label:c.endMonth" aria-label="End month"></select>
+        <select id="d2" data-i18n-attrs="aria-label:c.endDay" aria-label="End day"></select>
       </label>
       <span class="len" id="len"></span>
-      <span class="since">Over
-        <select id="since" aria-label="Seasons to include"></select>
+      <span class="since"><span data-i18n="trends.over">Over</span>
+        <select id="since" data-i18n-attrs="aria-label:trends.seasonsAria" aria-label="Seasons to include"></select>
       </span>
-      <span class="since">Shown as
-        <select id="yoyunit" aria-label="Units"></select>
+      <span class="since"><span data-i18n="trends.shownAs">Shown as</span>
+        <select id="yoyunit" data-i18n-attrs="aria-label:trends.unitsAria" aria-label="Units"></select>
       </span>
     </div>
     <p class="verdict" id="verdict"></p>
@@ -187,13 +187,13 @@ table.cmp tr.off td{opacity:.4}
 </section>
 
 <section>
-  <h2>Season by season</h2>
+  <h2 data-i18n="trends.h2.yoy">Season by season</h2>
   <p class="hint" id="yoyhint"></p>
   <div class="chart" id="yoy"></div>
   <div class="keybar">
     <div class="key" id="key"></div>
-    <button type="button" class="toggle" id="showall">Show all</button>
-    <button type="button" class="toggle" id="hideall">Hide all</button>
+    <button type="button" class="toggle" id="showall" data-i18n="c.showAll">Show all</button>
+    <button type="button" class="toggle" id="hideall" data-i18n="c.hideAll">Hide all</button>
   </div>
 </section>
 
@@ -206,6 +206,10 @@ const GROUPS = /*__GROUPS__*/null;
 const TOTAL = /*__TOTAL__*/0;
 const SEASON = /*__SEASON__*/null;
 </script>
+<script src="i18n.js"></script>
+<script src="locales/en.js"></script>
+<script src="locales/ja.js"></script>
+<script src="locales/zh-Hant.js"></script>
 <script src="site.js"></script>
 <script>
 let yoyUnit = "week";   // a rate keeps windows of different lengths comparable
@@ -217,7 +221,7 @@ function svgYoY(series, scaleFrom, L){
   // so default to a rate. The shape is identical either way; only the units
   // and the axis change.
   const per = yoyUnit === "week" ? 7 / L : yoyUnit === "month" ? 30 / L : 1;
-  const unit = yoyUnit === "week" ? "cm/week" : yoyUnit === "month" ? "cm/30d" : "cm";
+  const unit = T("trends.unit." + yoyUnit);
   const val = r => r.total * per;
   const scale = (scaleFrom && scaleFrom.length) ? scaleFrom : series;
   const years = [...new Set(scale.flatMap(s => s.rows.map(r => r.y)))].sort((a,b)=>a-b);
@@ -258,13 +262,13 @@ function svgYoY(series, scaleFrom, L){
       const r = byYear[i].get(yv);
       if(r) rows.push({name:ser.name, colour:ser.colour, y:Y(val(r)), sort:val(r),
                        value: Math.round(val(r)) + unit.replace("cm",""),
-                       extra: Math.round(r.total) + "cm total"});
+                       extra: T("trends.tip.total", {n: Math.round(r.total)})});
     });
     if(!rows.length) return null;
     rows.sort((x,y) => y.sort - x.sort);   // snowiest first that season
-    return {x:X(yv), label:"Season "+seasonLabel(yv), rows};
+    return {x:X(yv), label:T("trends.tip.season", {s: seasonLabel(yv)}), rows};
   }};
-  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Snowfall in the chosen window, season by season">${g}</svg>`, model};
+  return {svg:`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${T("trends.aria")}">${g}</svg>`, model};
 }
 
 function blank(msg){
@@ -276,14 +280,14 @@ async function renderPage(){
   paintPicker();
   [...hidden].forEach(k => { if(!picked.includes(k)) hidden.delete(k); });
   const a = ord(sel.m1, sel.d1), b = ord(sel.m2, sel.d2), L = b - a + 1;
-  el("len").innerHTML = "<b>" + L + "</b> day" + (L===1 ? "" : "s");
-  if(!picked.length) return blank("Pick at least one resort above.");
+  el("len").innerHTML = T("plan.len", {n: L});
+  if(!picked.length) return blank(T("plan.pickOne"));
 
   const token = picked.join("|") + a + b + since;
   renderPage.token = token;
   const series = await seriesFor(a, b, L);
   if(renderPage.token !== token) return;
-  if(!series.length) return blank("No daily record for the selected resorts.");
+  if(!series.length) return blank(T("plan.noDaily"));
 
   el("key").innerHTML = series.map(s =>
     `<button type="button" data-k="${s.k}" aria-pressed="${!hidden.has(s.k)}">`
@@ -299,22 +303,18 @@ async function renderPage(){
   const vis = series.filter(s => !hidden.has(s.k));
   const yseries = vis.filter(s => s.rows.length >= 5);
   const yscale = series.filter(s => s.rows.length >= 5);
-  if(!yscale.length) return blank("Not enough complete seasons for these dates.");
+  if(!yscale.length) return blank(T("trends.tooFew"));
   const yoy = svgYoY(yseries, yscale, L);
   el("yoy").innerHTML = yoy.svg;
   attachHover(el("yoy"), yoy.model);
 
   const allOff = !vis.length;
   el("yoyhint").innerHTML = allOff
-    ? `Every resort is hidden — the axes stay so you can see the scale. Use Show all, or `
-      + `click a name in the key.`
-    : `${dateLabel(sel.m1,sel.d1)} – ${dateLabel(sel.m2,sel.d2)} in each season `
-      + `${since ? "of the last " + since : "on record"}. `
-      + (yoyUnit === "total"
-          ? `The solid line is that window's total. `
-          : `The solid line is a rate, so windows of different lengths stay comparable. `)
-      + `Its jaggedness is the year-to-year variability; the dashed line is the linear `
-      + `trend. Hover for a season's exact figures.`;
+    ? T("trends.hint.off")
+    : [T("trends.hint.in", {from: dateLabel(sel.m1,sel.d1), to: dateLabel(sel.m2,sel.d2),
+          scope: since ? T("trends.scopeLast", {n: since}) : T("trends.scopeAll")}),
+       T(yoyUnit === "total" ? "trends.hint.total" : "trends.hint.rate"),
+       T("trends.hint.tail")].join(T("c.join"));
 
   // Rank by how fast each resort is changing -- the question this page asks.
   const moved = (vis.length ? vis : series).map(s => {
@@ -331,44 +331,40 @@ async function renderPage(){
   const low = moved[0], high = moved[moved.length-1];
   const say = m => `${m.pct > 0 ? "+" : ""}${Math.round(m.pct)}%`;
   const span = `${seasonLabel(low.first)}\u2013${seasonLabel(low.last)}`;
-  el("verdict").innerHTML = moved.length === 1
-    ? `Across ${span}, <b>${low.name}</b> has moved ${low.change < 0 ? "down" : "up"} about `
-      + `<b>${Math.abs(Math.round(low.change))}cm</b> over these dates, `
-      + `${say(low)} of a typical window`
-      + (low.noisy ? ` — inside its own season-to-season swing, so not a trend to act on.`
-                   : `.`)
-    : `Across ${span}, the trend over these dates runs from <b>${low.name}</b> at `
-      + `<b>${say(low)}</b> of a typical window to <b>${high.name}</b> at <b>${say(high)}</b>. `
-      + (low.noisy || high.noisy
-          ? `Both of those sit inside their own season-to-season swing, so neither is a `
-            + `trend you could act on. `
-          : ``)
-      + `A station move or an instrument change looks the same as weather here — read the `
-      + `direction, not the number.`;
+  if(moved.length === 1){
+    el("verdict").innerHTML = T(low.noisy ? "trends.v.single.noisy" : "trends.v.single", {
+      span, name: low.name, dir: T(low.change < 0 ? "trends.down" : "trends.up"),
+      cm: Math.abs(Math.round(low.change)), pct: say(low)});
+  }else{
+    el("verdict").innerHTML = [
+      T("trends.v.many", {span, low: low.name, lowpct: say(low),
+                          high: high.name, highpct: say(high)}),
+      low.noisy || high.noisy ? T("trends.v.many.noisy") : "",
+      T("trends.v.many.end")
+    ].filter(Boolean).join(T("c.join"));
+  }
 }
 
 el("showall").onclick = () => { hidden.clear(); renderPage(); };
 el("hideall").onclick = () => { picked.forEach(k => hidden.add(k)); renderPage(); };
 
 const yu = el("yoyunit");
-[["week","centimetres per week"],["month","centimetres per 30 days"],
- ["total","total over the window"]].forEach(([v,label]) => {
+["week","month","total"].forEach(v => {
   const o = document.createElement("option");
-  o.value = v; o.textContent = label;
+  o.value = v;
   yu.appendChild(o);
 });
+function paintStatic(){
+  [...yu.options].forEach(o => { o.textContent = T("trends.opt." + o.value); });
+  el("foot").innerHTML = T("trends.foot");
+}
+paintStatic();
+I18N.onChange(paintStatic);
 yu.value = yoyUnit;
 yu.onchange = () => { yoyUnit = yu.value; renderPage(); };
 // A reload can restore a previously chosen option after this runs.
 requestAnimationFrame(() => { if(yu.value !== yoyUnit){ yoyUnit = yu.value; renderPage(); } });
 
-el("foot").innerHTML =
-  "Source: Japan Meteorological Agency, \u904e\u53bb\u306e\u6c17\u8c61\u30c7\u30fc\u30bf\u691c\u7d22 "
-  + "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>), element "
-  + "\u964d\u96ea\u306e\u6df1\u3055\u65e5\u5408\u8a08. Trends are a least-squares fit over the seasons shown "
-  + "and say nothing about why. Station moves, instrument changes and JMA's own "
-  + "retrospective revisions all land in this line, so read it as a direction rather "
-  + "than a measurement.";
 bootShell(3);
 </script>
 </body>

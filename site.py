@@ -5,8 +5,8 @@ Turn the resort registry and whatever data has been fetched into the site.
     python3 site.py build
 
 Deliberately knows nothing about any weather service. It reads resorts.json,
-reference.json and data/*.csv, and writes index.html, plan.html and
-trends.html. Each country's fetcher is responsible for producing CSVs in the
+reference.json and data/*.csv, and writes index.html, plan.html, trends.html
+and map.html. Each country's fetcher is responsible for producing CSVs in the
 shape below; this step never opens a source-specific index or code table.
 
 Required CSV columns per resort, one row per season:
@@ -104,6 +104,9 @@ def build():
             station_m = None
         payload[key] = {
             "name": reg.get("name", key),
+            # Optional, keyed by language code (ja, zh-Hant). The page falls
+            # back to `name` / `areas` for any language not given.
+            "names": reg.get("names", {}),
             "country": reg.get("country", ""),
             "area": reg.get("area", ""),
             "region": head.get("region", ""),
@@ -113,6 +116,7 @@ def build():
             "station_m": station_m,
             "daily": daily_id,
             "areas": meta.get("areas", ""),
+            "areas_i18n": meta.get("areas_i18n", {}),
             "base": meta.get("base"),
             "top": meta.get("top"),
             "claimed_m": meta.get("claimed_m"),
@@ -126,14 +130,15 @@ def build():
         }
 
     # Resorts reading the same station produce identical series. Say so on the
-    # page rather than leaving two matching lines looking like a bug.
+    # page rather than leaving two matching lines looking like a bug. Keys, not
+    # names, so the page can name them in whichever language is showing.
     by_station = {}
     for key, v in payload.items():
         by_station.setdefault((v["country"], v["station_id"]), []).append(key)
     for group in by_station.values():
         if len(group) > 1:
             for key in group:
-                payload[key]["shares"] = [payload[k]["name"] for k in group if k != key]
+                payload[key]["shares"] = [k for k in group if k != key]
 
     # Only advertise countries and areas that actually have data.
     tree = {}

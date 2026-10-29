@@ -1,9 +1,9 @@
 /* Shared by every page: constants, stats, the resort picker, the date
    controls, the daily-data cache and the hover readout. Each page defines
-   its own renderPage() and calls bootShell() once its DATA is in scope. */
+   its own renderPage() and calls bootShell() once its DATA is in scope.
+   Wording comes from i18n.js, which has to load first. */
 
 const el = id => document.getElementById(id);
-const nameOf = k => (DATA[k] && DATA[k].name) || k;
 const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
 const median = a => { const s=[...a].sort((x,y)=>x-y), h=s.length>>1;
   return s.length%2 ? s[h] : (s[h-1]+s[h])/2; };
@@ -17,15 +17,13 @@ const pct = (arr,p) => { const s=[...arr].sort((x,y)=>x-y);
    February always gets 29 slots; a non-leap season leaves the last empty. */
 const MON = SEASON.months;
 const MLEN = Object.fromEntries(Object.entries(SEASON.len).map(([m,n]) => [Number(m), n]));
-const MNAME = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
-               7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"};
 const ORD = (() => { const o={}; let n=0; MON.forEach(m => {o[m]=n; n+=MLEN[m];}); return o; })();
 const NDAYS = SEASON.days;
 const ord = (m,d) => ORD[m] + d - 1;
 const fromOrd = o => { for(const m of MON) if(o < ORD[m]+MLEN[m]) return {m, d:o-ORD[m]+1};
   const last = MON[MON.length-1]; return {m:last, d:MLEN[last]}; };
 const isLeap = y => (y%4===0 && y%100!==0) || y%400===0;
-const dateLabel = (m,d) => d + " " + MNAME[m];
+const dateLabel = (m,d) => T("date", {d, m:mname(m), n:m});
 const seasonLabel = y => y + "/" + String(y+1).slice(2);
 /* Hues spread evenly across however many resorts are picked, so no two ever
    share a colour. Lightness and saturation alternate between neighbours,
@@ -148,17 +146,33 @@ function smoothBy(pts, key, w){
   });
 }
 
+function paintGap(){
+  const g = el("gap");
+  const have = Object.keys(DATA||{}).length;
+  g.hidden = have >= TOTAL;
+  if(!g.hidden) g.innerHTML = T("picker.gap", {have, total:TOTAL});
+}
+
+const groupText = (country, area) =>
+  (Object.keys(GROUPS).length > 1 ? countryLabel(country) + " \u00b7 " : "") + areaLabel(area);
+
+/* The picker is built once, so a change of language renames it in place --
+   which also keeps whatever is open or selected. */
+function relabelPicker(){
+  document.querySelectorAll(".pgroup .pglabel").forEach(l => {
+    l.textContent = groupText(l.dataset.country, l.dataset.area);
+  });
+  el("picker").querySelectorAll(".pgbody button").forEach(b => {
+    b.textContent = nameOf(b.dataset.k);
+  });
+  paintGap();
+}
+
 function buildPicker(){
   const have = Object.keys(DATA||{});
-  if(have.length < TOTAL){
-    const g = el("gap");
-    g.hidden = false;
-    g.innerHTML = have.length + " of " + TOTAL + " resorts have data. Run the update " +
-      "workflow to fill in the rest.";
-  }
+  paintGap();
   const nav = el("picker");
   const multi = !!el("clear");          // records page picks one at a time
-  const multiCountry = Object.keys(GROUPS).length > 1;
   let firstArea = true;
   for(const country in GROUPS){
     for(const area in GROUPS[country]){
@@ -199,8 +213,12 @@ function buildPicker(){
       head.className = "pghead";
       head.setAttribute("aria-expanded", g.dataset.open);
       head.innerHTML = `<span class="caret">\u25B6</span>`
-        + `<span>${multiCountry ? country + " \u00b7 " : ""}${area}</span>`
+        + `<span class="pglabel"></span>`
         + `<span class="n">${ks.length}</span><span class="rule"></span>`;
+      const label = head.querySelector(".pglabel");
+      label.dataset.country = country;
+      label.dataset.area = area;
+      label.textContent = groupText(country, area);
       head.onclick = () => {
         const open = g.dataset.open !== "true";
         g.dataset.open = open;
@@ -255,11 +273,11 @@ function paintPicker(){
     const n = ks.filter(k => picked.includes(k)).length;
     box.dataset.state = n === 0 ? "none" : n === ks.length ? "all" : "some";
     box.setAttribute("aria-label",
-      (n === ks.length ? "Clear all " : "Select all ") + ks.length + " resorts in this area");
+      T(n === ks.length ? "picker.clearArea" : "picker.selectArea", {n: ks.length}));
     box.setAttribute("aria-checked", n === 0 ? "false" : n === ks.length ? "true" : "mixed");
   });
   el("count").textContent = picked.length
-    ? picked.length + " selected" : "none selected";
+    ? T("picker.count", {n: picked.length}) : T("picker.none");
 }
 
 function fillDays(selId, m, keep){
@@ -267,7 +285,7 @@ function fillDays(selId, m, keep){
   s.innerHTML = "";
   for(let d=1; d<=MLEN[m]; d++){
     const o = document.createElement("option");
-    o.value = d; o.textContent = d;
+    o.value = d; o.textContent = T("day", {d});
     s.appendChild(o);
   }
   s.value = Math.min(keep, MLEN[m]);
@@ -279,7 +297,7 @@ function buildDateControls(){
     const ms = el(mi);
     MON.forEach(m => {
       const o = document.createElement("option");
-      o.value = m; o.textContent = MNAME[m];
+      o.value = m; o.textContent = mname(m);
       ms.appendChild(o);
     });
     ms.value = which ? sel.m2 : sel.m1;
@@ -298,11 +316,26 @@ function buildDateControls(){
   const ss = el("since");
   [10,15,20,25,30,0].forEach(n => {
     const o = document.createElement("option");
-    o.value = n; o.textContent = n ? "the last " + n + " seasons" : "every season on record";
+    o.value = n;
     ss.appendChild(o);
   });
+  relabelControls();
   ss.value = since;
   ss.onchange = () => { since = Number(ss.value); renderPage(); };
+}
+
+/* The option text is the only language-dependent part of the date and season
+   controls; values and the current selection stay put. */
+function relabelControls(){
+  ["m1","m2"].forEach(id => {
+    [...el(id).options].forEach(o => { o.textContent = mname(Number(o.value)); });
+  });
+  ["d1","d2"].forEach(id => {
+    [...el(id).options].forEach(o => { o.textContent = T("day", {d: o.value}); });
+  });
+  [...el("since").options].forEach(o => {
+    o.textContent = Number(o.value) ? T("ctl.lastN", {n: o.value}) : T("ctl.allSeasons");
+  });
 }
 
 function normalise(){
@@ -322,7 +355,7 @@ function axes(W,H,P,maxv,Xof){
        + `<text class="axis" x="${P.l-6}" y="${(y+3).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; });
   MON.forEach(m => { const x=Xof(ORD[m]);
     g += `<line class="grid" x1="${x.toFixed(1)}" y1="${P.t}" x2="${x.toFixed(1)}" y2="${P.t+ih}"/>`
-       + `<text class="axis" x="${(x+3).toFixed(1)}" y="${H-9}">${MNAME[m]}</text>`; });
+       + `<text class="axis" x="${(x+3).toFixed(1)}" y="${H-9}">${mname(m)}</text>`; });
   return g;
 }
 
@@ -388,7 +421,7 @@ async function seriesFor(a, b, L){
     const depths = rows.filter(r => r.depth != null).map(r => r.depth);
     const avg = mean(totals), sd = stdev(totals);
     out.push({
-      k, name:nameOf(k), area:DATA[k].area, colour:colourOf(i, picked.length),
+      k, name:nameOf(k), area:areaLabel(DATA[k].area), colour:colourOf(i, picked.length),
       // `seasons` is the parsed daily cache; the day-by-day chart needs it.
       seasons, rows, totals, curve:scanCurve(seasons, L, years),
       avg, med:median(totals), sd, cv: avg ? sd / avg * 100 : 0,
@@ -403,9 +436,8 @@ async function seriesFor(a, b, L){
 function bootShell(defaultPicks){
   const have = Object.keys(DATA || {});
   if(!have.length){
-    document.body.innerHTML = "<div class='wrap'><header><h1>No data yet</h1>"
-      + "<p class='lede'>Run <code>jma_snowfall.py fetch</code>, then <code>daily</code>, "
-      + "then <code>build</code>.</p></header></div>";
+    document.body.innerHTML = "<div class='wrap'><header><h1>" + T("shell.nodata") + "</h1>"
+      + "<p class='lede'>" + T("shell.nodataHint") + "</p></header></div>";
     return;
   }
   buildDateControls();
@@ -424,5 +456,6 @@ function bootShell(defaultPicks){
         if(picked.length === (defaultPicks || 3)) break outer;
       }
   buildPicker();
+  I18N.onChange(() => { relabelPicker(); relabelControls(); renderPage(); });
   renderPage();
 }

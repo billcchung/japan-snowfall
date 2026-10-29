@@ -1,5 +1,7 @@
 # Japan snowfall
 
+English · [日本語](README.ja.md) · [繁體中文](README.zh-Hant.md)
+
 Historical snowfall for Japanese ski resorts, taken from Japan Meteorological
 Agency station records instead of resort marketing figures. A static site — no
 build tooling, no dependencies, standard library only.
@@ -56,6 +58,9 @@ source.
 | `map.html` | Every snow-measuring station in Japan, mapped. Generated — edit `map-template.html`. |
 | `*-template.html` | Markup for the four pages. `/*__DATA__*/null`, `/*__GROUPS__*/null`, `/*__SEASON__*/null` and `/*__TOTAL__*/0` are where the data lands. |
 | `site.css`, `site.js` | Shared styling and shared behaviour — picker, date controls, stats, daily cache. Each page defines its own `renderPage()`. |
+| `i18n.js` | Language detection, the switcher, `T()` and the helpers that name resorts and months in the current language. Loaded first on every page. |
+| `locales/en.js`, `ja.js`, `zh-Hant.js` | Every string the pages show, one flat key-to-text table per language. English is the source. |
+| `i18n_check.py` | Fails if the three languages drift apart. See [Languages](#languages). |
 | `jma_snowfall.py` | The Japan fetcher: `discover`, `fetch`, `verify`, `daily`. Knows JMA and nothing else. |
 | `site.py` | `build` — registry plus CSVs to HTML. Knows no weather service. |
 | `data/*.csv` | One file per resort, one row per season. Generated. |
@@ -64,6 +69,40 @@ source.
 | `reference.json` | Resort elevations and claimed annual snowfall. |
 | `fixtures/niseko_kutchan.csv` | The hand-transcribed Kutchan table. `verify` checks the scrape against it. |
 | `seed_kutchan.py` | Prints that fixture to stdout: `python3 seed_kutchan.py > fixtures/niseko_kutchan.csv`. |
+
+## Languages
+
+The site is in English, Japanese (日本語) and Traditional Chinese (繁體中文). The
+language is taken from `?lang=ja` / `?lang=zh-Hant` / `?lang=en` if present, then
+from the visitor's last choice (kept in their browser), then from the browser's own
+language setting, where any Chinese maps to Traditional. The switcher at the right
+of the page navigation changes it in place without losing the selection, and the
+page links carry the choice along.
+
+All wording lives in `locales/*.js`, each a strict-JSON table inside an
+`I18N.add("<code>", {...})` call. Static text in the templates carries
+`data-i18n="key"` (or `data-i18n-attrs="attr:key"` for attributes) with the English
+left in the markup, so the page still reads with scripts off; text built in script
+goes through `T("key", {vars})`. `{name}` is a placeholder. A key with `.one` and
+`.other` forms is a plural, chosen by `Intl.PluralRules` from `{n}`; Japanese and
+Chinese need only `.other`. A key missing from the chosen language falls back to
+English.
+
+Run `python3 i18n_check.py` after touching any string. It fails on a key one
+language lacks, placeholders that differ, a key the code asks for that does not
+exist, and English in a template's markup that no longer matches `locales/en.js`.
+
+Resort names and ski-area blurbs are data, not interface: `names` in `resorts.json`
+and `areas_i18n` in `reference.json`, each keyed `ja` and `zh-Hant`. Anything left
+out shows in English. Station names, prefectures and kana come from JMA in Japanese
+and are shown as they are in every language, as is the `降雪の深さ…` label under each
+page title. Region headings (`Hokkaido`, `Tohoku`, …) are in the locale files as
+`area.<name>`.
+
+To add a language: copy `locales/en.js` to `locales/<code>.js` and translate it, add
+a `<script src="locales/<code>.js">` to each template, add the code to `LANGS` and
+`normalise()` in `i18n.js`, add its `names` and `areas_i18n`, and a font rule in
+`site.css` if the default faces lack its script.
 
 ## Adding a country
 
@@ -165,7 +204,8 @@ loses the station names, so `fetch` will then report stations missing.
 ## Adding a Japanese resort
 
 One entry in `resorts.json` giving the station's exact Japanese name and its
-region code. Grep `station_index.json` after `discover` to find it, and check
+region code, plus `names` with the Japanese and Traditional Chinese name (see
+[Languages](#languages); it falls back to English if left out). Grep `station_index.json` after `discover` to find it, and check
 the station's `"snow"` flag is `true` — plenty of AMeDAS stations report wind
 and temperature but no snow, and `fetch` will refuse rather than write an empty
 series. Registry order is display order.

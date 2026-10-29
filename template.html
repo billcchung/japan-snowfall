@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Japan snowfall — JMA station records</title>
-<meta name="description" content="Historical snowfall for Japanese ski resorts, taken from Japan Meteorological Agency station records rather than resort marketing figures. Season totals and a month-by-month breakdown for each resort, measured at the nearest official weather station.">
+<title data-i18n="idx.title">Japan snowfall — JMA station records</title>
+<meta name="description" data-i18n-attrs="content:idx.desc" content="Historical snowfall for Japanese ski resorts, taken from Japan Meteorological Agency station records rather than resort marketing figures. Season totals and a month-by-month breakdown for each resort, measured at the nearest official weather station.">
 <meta name="color-scheme" content="dark">
-<meta property="og:title" content="Japan snowfall — JMA station records">
-<meta property="og:description" content="What Japan's ski resorts actually get, measured by the JMA station nearest each one.">
+<meta property="og:title" data-i18n-attrs="content:idx.title" content="Japan snowfall — JMA station records">
+<meta property="og:description" data-i18n-attrs="content:idx.ogdesc" content="What Japan's ski resorts actually get, measured by the JMA station nearest each one.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23080C12'/%3E%3Crect x='5' y='7' width='22' height='4' fill='%231C3D5C'/%3E%3Crect x='5' y='13' width='22' height='4' fill='%234A6FC4'/%3E%3Crect x='5' y='19' width='22' height='4' fill='%23B4348C'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,30 +52,30 @@ tr:hover .bar{background:var(--s3)}
 <div class="wrap">
 
 <header>
-  <p class="kicker">Japan Meteorological Agency · daily new-snow records</p>
-  <h1>Where the snow actually falls
+  <p class="kicker" data-i18n="idx.kicker">Japan Meteorological Agency · daily new-snow records</p>
+  <h1><span data-i18n="idx.h1">Where the snow actually falls</span>
     <span class="ja">降雪の深さ月合計 — 観測記録</span></h1>
-  <p class="lede">Every figure here is <b>降雪の深さ</b>, the depth of new snow summed over the
+  <p class="lede" data-i18n="idx.lede">Every figure here is <b>降雪の深さ</b>, the depth of new snow summed over the
   month, measured at the official JMA station nearest each resort. Resort marketing numbers
   are not audited. These are.</p>
 </header>
 
-<nav class="pages" aria-label="Pages">
-  <a href="index.html" aria-current="page">Records</a>
-  <a href="plan.html">Trip planner</a>
-  <a href="trends.html">Trends</a>
-  <a href="map.html">Snow map</a>
+<nav class="pages" data-i18n-attrs="aria-label:nav.label" aria-label="Pages">
+  <a href="index.html" aria-current="page" data-i18n="nav.records">Records</a>
+  <a href="plan.html" data-i18n="nav.plan">Trip planner</a>
+  <a href="trends.html" data-i18n="nav.trends">Trends</a>
+  <a href="map.html" data-i18n="nav.map">Snow map</a>
 </nav>
 
 <div id="gap" class="warn" hidden></div>
 
-<nav class="picker" id="picker" aria-label="Resort"></nav>
+<nav class="picker" id="picker" data-i18n-attrs="aria-label:idx.picker" aria-label="Resort"></nav>
 <p class="station" id="station"></p>
 
 <dl class="stats" id="stats"></dl>
 
 <section>
-  <h2>Season by month</h2>
+  <h2 data-i18n="idx.h2">Season by month</h2>
   <p class="hint" id="mxhint"></p>
   <div class="matrix">
     <table id="matrix">
@@ -96,10 +96,13 @@ const DATA = /*__DATA__*/null;
 const GROUPS = /*__GROUPS__*/null;
 const TOTAL = /*__TOTAL__*/0;
 const SEASON = /*__SEASON__*/null;
-const nameOf = k => (DATA[k] && DATA[k].name) || k;
-const MNAME = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
-               7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"};
-const MONTHS = SEASON.months.map(m => MNAME[m]);
+</script>
+<script src="i18n.js"></script>
+<script src="locales/en.js"></script>
+<script src="locales/ja.js"></script>
+<script src="locales/zh-Hant.js"></script>
+<script>
+const MONTHS = () => SEASON.months.map(mname);
 const STOPS = [0,50,100,150,200,300];
 const RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
 
@@ -118,17 +121,9 @@ let current = null;
 function boot(){
   const have = Object.keys(DATA||{});
   if(!have.length){
-    document.body.innerHTML = "<div class='wrap'><header><h1>No data yet</h1>" +
-      "<p class='lede'>Run the update workflow, or <code>python3 jma_snowfall.py discover</code> then " +
-      "<code>fetch</code>, then <code>build</code>.</p></header></div>";
+    document.body.innerHTML = "<div class='wrap'><header><h1>" + T("shell.nodata") + "</h1>" +
+      "<p class='lede'>" + T("idx.nodataHint") + "</p></header></div>";
     return;
-  }
-  if(have.length < TOTAL){
-    const g = el("gap");
-    g.hidden = false;
-    g.innerHTML = have.length + " of " + TOTAL + " resorts loaded. " +
-      "Run the Update snowfall data workflow, or <code>jma_snowfall.py fetch</code> " +
-      "locally, to fill in the rest.";
   }
   const nav = el("picker");
   const multiCountry = Object.keys(GROUPS).length > 1;
@@ -147,9 +142,12 @@ function boot(){
       head.type = "button";
       head.className = "pghead";
       head.setAttribute("aria-expanded", g.dataset.open);
-      head.innerHTML = `<span class="caret">\u25B6</span>`
-        + `<span>${multiCountry ? country + " \u00b7 " : ""}${area}</span>`
+      head.innerHTML = `<span class="caret">▶</span>`
+        + `<span class="pglabel"></span>`
         + `<span class="n">${ks.length}</span><span class="rule"></span>`;
+      const label = head.querySelector(".pglabel");
+      label.dataset.country = country;
+      label.dataset.area = area;
       head.onclick = () => {
         const open = g.dataset.open !== "true";
         g.dataset.open = open;
@@ -161,7 +159,7 @@ function boot(){
       ks.forEach(k => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.textContent = nameOf(k); btn.dataset.k = k;
+        btn.dataset.k = k;
         btn.setAttribute("aria-pressed","false");
         btn.onclick = () => select(k);
         body.appendChild(btn);
@@ -170,17 +168,34 @@ function boot(){
       nav.appendChild(g);
     }
   }
-  el("mxhint").innerHTML = "One row per season, " + MONTHS[0] + " through "
-    + MONTHS[MONTHS.length-1] + ". Colour follows JMA's own snow-chart progression — "
-    + "blue for an ordinary month, magenta where the station cleared three metres in "
-    + "thirty days.";
-  el("mhead").innerHTML = '<th class="sea">Season</th>'
-    + MONTHS.map(m => `<th>${m}</th>`).join("")
-    + '<th class="tot">Total</th>';
-  buildLegend();
   // .pgbody scopes this to resort buttons; the area headers are buttons too.
   const first = nav.querySelector(".pgbody button");
+  paintStatic();
   select(first ? first.dataset.k : have[0]);
+  I18N.onChange(() => { paintStatic(); render(); });
+}
+
+/* Everything on the page that is words rather than numbers, and so has to be
+   redone when the language changes. The picker is built once and renamed here. */
+function paintStatic(){
+  const multiCountry = Object.keys(GROUPS).length > 1;
+  document.querySelectorAll(".pglabel").forEach(l => {
+    l.textContent = (multiCountry ? countryLabel(l.dataset.country) + " · " : "")
+      + areaLabel(l.dataset.area);
+  });
+  el("picker").querySelectorAll(".pgbody button").forEach(b => {
+    b.textContent = nameOf(b.dataset.k);
+  });
+  const have = Object.keys(DATA||{}).length;
+  el("gap").hidden = have >= TOTAL;
+  if(have < TOTAL) el("gap").innerHTML = T("idx.gap", {have, total: TOTAL});
+  const M = MONTHS();
+  el("mxhint").innerHTML = T("idx.mxhint", {first: M[0], last: M[M.length-1]});
+  el("mhead").innerHTML = `<th class="sea">${T("idx.th.season")}</th>`
+    + M.map(m => `<th>${m}</th>`).join("")
+    + `<th class="tot">${T("idx.th.total")}</th>`;
+  buildLegend();
+  el("foot").innerHTML = T("idx.foot");
 }
 
 function buildLegend(){
@@ -191,7 +206,7 @@ function buildLegend(){
       `<i style="background:var(${RAMP[i+1]})"></i>` +
       `<span>${s ? s : "300+"}</span>`);
   });
-  L.insertAdjacentHTML("beforeend","<span>cm in the month</span>");
+  L.insertAdjacentHTML("beforeend", `<span>${T("idx.legend")}</span>`);
 }
 
 function select(k){
@@ -202,18 +217,19 @@ function select(k){
 }
 
 function render(){
-  const d = DATA[current], rows = d.seasons;
+  const d = DATA[current], rows = d.seasons, MONTH = MONTHS();
   const gap = (d.top && d.station_m != null) ? Math.round(d.top - d.station_m) : null;
-  el("station").innerHTML =
-    "Station <b>" + d.station + "</b>" +
-    (d.station_m != null ? " at " + Math.round(d.station_m) + "m" : "") +
-    (d.areas ? " · covers " + d.areas : "") +
-    (d.base ? " · lifts run " + d.base + "–" + d.top + "m" : "") +
-    (gap != null ? " · <b>" + gap.toLocaleString() + "m below the summit</b>" : "") +
-    " · " + rows.length + " seasons, " + rows[0].s + " to " +
-    rows[rows.length-1].s + "." +
-    (d.shares ? " <b>The same station also stands in for " + d.shares.join(" and ") +
-      "</b>, so those read identically." : "");
+  const where = [
+    d.station_m != null
+      ? T("idx.station", {name: d.station, m: Math.round(d.station_m)})
+      : T("idx.stationNoElev", {name: d.station}),
+    areasOf(current) ? T("idx.covers", {areas: areasOf(current)}) : "",
+    d.base ? T("idx.lifts", {base: d.base, top: d.top}) : "",
+    gap != null ? T("idx.gap.below", {m: I18N.num(gap)}) : "",
+    T("idx.span", {n: rows.length, from: rows[0].s, to: rows[rows.length-1].s})
+  ].filter(Boolean).join(" · ");
+  el("station").innerHTML = where +
+    (d.shares ? " " + T("idx.shares", {names: I18N.list(d.shares.map(nameOf))}) : "");
 
   // Seasons with a month missing from the JMA record would otherwise show up
   // as the leanest winter on file. Keep them in the matrix, out of the stats.
@@ -224,54 +240,41 @@ function render(){
   const drift = Math.round((mean(last.map(r=>r.t)) / mean(first.map(r=>r.t)) - 1) * 100);
   const best = stat.reduce((a,b) => b.t > a.t ? b : a);
   const worst = stat.reduce((a,b) => b.t < a.t ? b : a);
-  const peak = MONTHS[[0,1,2,3,4,5].reduce((a,i) =>
+  const peak = MONTH[[0,1,2,3,4,5].reduce((a,i) =>
     mean(recent.map(r=>r.m[i])) > mean(recent.map(r=>r.m[a])) ? i : a, 0)];
 
   el("stats").innerHTML = [
-    ["Typical season", Math.round(mean(totals)) + "<small>cm</small>",
-      "median " + Math.round(median(totals)) + "cm · last 25"],
-    ["Snowiest month", peak, Math.round(Math.max(...MONTHS.map((m,i) =>
-      mean(recent.map(r=>r.m[i]))))) + "cm on average"],
-    ["Best season", best.t + "<small>cm</small>", best.s],
-    ["Leanest season", worst.t + "<small>cm</small>", worst.s],
-    ["Long-term drift", (drift>0?"+":"") + drift + "<small>%</small>",
-      "last 10 vs first 10 seasons"],
-    ["Resort claims", d.claimed_m != null ? d.claimed_m + "<small>m</small>" : "—",
+    [T("idx.stat.typical"), Math.round(mean(totals)) + "<small>cm</small>",
+      T("idx.stat.typical.sub", {n: Math.round(median(totals))})],
+    [T("idx.stat.peak"), peak, T("idx.stat.peak.sub", {n: Math.round(Math.max(...MONTH.map((m,i) =>
+      mean(recent.map(r=>r.m[i])))))})],
+    [T("idx.stat.best"), best.t + "<small>cm</small>", best.s],
+    [T("idx.stat.lean"), worst.t + "<small>cm</small>", worst.s],
+    [T("idx.stat.drift"), (drift>0?"+":"") + drift + "<small>%</small>",
+      T("idx.stat.drift.sub")],
+    [T("idx.stat.claims"), d.claimed_m != null ? d.claimed_m + "<small>m</small>" : "—",
       d.claimed_m != null
-        ? Math.round(d.claimed_m*100/mean(totals)*10)/10 + "\u00d7 the station figure"
-        : "no published figure"]
-  ].map(([t,v,s]) =>
-    `<div class="stat"><dt>${t}</dt><dd>${v}</dd><p class="sub">${s}</p></div>`).join("");
+        ? T("idx.stat.claims.sub", {x: Math.round(d.claimed_m*100/mean(totals)*10)/10})
+        : T("idx.stat.claims.none")]
+  ].map(([title,v,sub]) =>
+    `<div class="stat"><dt>${title}</dt><dd>${v}</dd><p class="sub">${sub}</p></div>`).join("");
 
   const max = Math.max(...rows.map(r => r.t));
   const lean = mean(rows.map(r => r.t)) * 0.7;
   el("matrix").tBodies[0].innerHTML = rows.map(r => {
     const cells = r.m.map((cm,i) =>
-      `<td class="cell" title="${MONTHS[i]} ${r.s} — ${cm}cm">` +
+      `<td class="cell" title="${T("idx.cell", {month: MONTH[i], season: r.s, cm})}">` +
       `<span style="background:${shade(cm)}"></span></td>`).join("");
     // A partial season would otherwise show a confident total built from
     // months JMA never recorded.
     const cls = [r.t < lean ? "dim" : "", r.i ? "partial" : ""].filter(Boolean).join(" ");
     const mark = r.i
-      ? '<abbr title="One or more months missing from the JMA record">*</abbr>' : "";
+      ? `<abbr title="${T("idx.partial")}">*</abbr>` : "";
     return `<tr${cls ? ` class="${cls}"` : ""}>` +
       `<td class="sea">${r.s}${mark}</td>${cells}` +
       `<td class="tot"><i class="bar" style="width:${(r.t/max*46).toFixed(1)}px"></i>` +
       `${r.t}</td></tr>`;
   }).join("");
-
-  el("foot").innerHTML =
-    "Source: Japan Meteorological Agency, 過去の気象データ検索 " +
-    "(<a href='https://www.data.jma.go.jp/stats/etrn/'>data.jma.go.jp</a>), element " +
-    "降雪の深さ月合計. The trip planner uses the daily tables for the same stations — " +
-    "降雪の深さ日合計 for new snow and 最深積雪 for the depth lying on the ground — so a " +
-    "range crossing the New Year is measured day by day rather than approximated from " +
-    "whole months. Seasons are assembled from JMA cold-season years (寒候年, " +
-    "1 Aug – 31 Jul), so November and December come from one calendar-year row and " +
-    "January through April from the next. Stations sit in the valley town rather than " +
-    "on the mountain, and the station-to-summit gap differs by resort — compare a " +
-    "resort against its own history first, and against other resorts only loosely. " +
-    "JMA revises figures retrospectively.";
 }
 
 boot();
